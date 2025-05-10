@@ -1,12 +1,24 @@
 {
   "name": "frontend",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "private": true,
+  "dependencies": {
+    "@material-ui/core": "^4.12.0",
+    "@material-ui/icons": "^4.11.2",
+    "axios": "^1.9.0",
+    "chart.js": "^3.5.0",
+    "leaflet": "^1.7.1",
+    "react": "^17.0.2",
+    "react-chartjs-2": "^3.0.3",
+    "react-dom": "^17.0.2",
+    "react-leaflet": "^3.2.0",
+    "react-router-dom": "^5.2.0",
+    "socket.io-client": "^4.1.2"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  }
 }
