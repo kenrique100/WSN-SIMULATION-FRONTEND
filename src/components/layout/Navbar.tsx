@@ -1,7 +1,7 @@
 import { AppBar, Toolbar, Typography, IconButton, Avatar, Menu, MenuItem } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import React, { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 export default function Navbar() {
@@ -17,11 +17,17 @@ export default function Navbar() {
         setAnchorEl(null);
     };
 
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-        handleClose();
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/login');
+        } catch (error) {
+            console.error('Logout failed:', error);
+        } finally {
+            handleClose();
+        }
     };
+
 
     return (
         <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>

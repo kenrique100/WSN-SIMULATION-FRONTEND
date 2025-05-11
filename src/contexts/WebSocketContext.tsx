@@ -7,7 +7,11 @@ interface WebSocketContextType {
     sendMessage: (message: string) => void;
 }
 
-const WebSocketContext = createContext<WebSocketContextType>(null!);
+const WebSocketContext = createContext<WebSocketContextType>({
+    alerts: [],
+    readings: [],
+    sendMessage: () => {}
+});
 
 export function WebSocketProvider({ children }: { children: ReactNode }) {
     const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -59,6 +63,4 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     return <WebSocketContext.Provider value={value}>{children}</WebSocketContext.Provider>;
 }
 
-export function useWebSocket() {
-    return useContext(WebSocketContext);
-}
+export const useWebSocket = () => useContext(WebSocketContext);

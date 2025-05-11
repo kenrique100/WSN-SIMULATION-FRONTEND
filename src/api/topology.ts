@@ -1,5 +1,5 @@
-import apiClient from './index';
-import type { NetworkTopology } from '../types';
+import apiClient from './apiClient';
+import type { NetworkTopology } from '@/types';
 
 export const getNetworkTopology = async (): Promise<NetworkTopology[]> => {
     const response = await apiClient.get('/topology');

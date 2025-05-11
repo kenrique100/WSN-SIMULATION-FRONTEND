@@ -1,21 +1,24 @@
-import axios from 'axios';
-import { Reading, ReadingFilter } from '../types';
+import apiClient from './apiClient';
+import type { Reading, ReadingFilter } from '@/types';
 
-const API_URL = import.meta.env.VITE_API_URL;
+export const getReadings = async (filters: ReadingFilter): Promise<Reading[]> => {
+    const response = await apiClient.get('/readings', { params: filters });
+    return response.data;
+};
 
-export const fetchReadings = async (filters: ReadingFilter): Promise<Reading[]> => {
-    const response = await axios.get(`${API_URL}/readings`, { params: filters });
+export const getNodeReadings = async (nodeId: number, hours: number): Promise<Reading[]> => {
+    const response = await apiClient.get(`/nodes/${nodeId}/readings?hours=${hours}`);
     return response.data;
 };
 
 export const fetchLatestReadings = async (nodeId?: string): Promise<Reading[]> => {
-    const response = await axios.get(`${API_URL}/readings/latest`, {
+    const response = await apiClient.get('/readings/latest', {
         params: { nodeId }
     });
     return response.data;
 };
 
 export const fetchReadingStats = async (): Promise<any> => {
-    const response = await axios.get(`${API_URL}/readings/stats`);
+    const response = await apiClient.get('/readings/stats');
     return response.data;
 };

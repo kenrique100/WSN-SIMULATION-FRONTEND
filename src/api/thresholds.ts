@@ -1,5 +1,5 @@
-import apiClient from './index';
-import type { AlertThreshold, AlertThresholdUpdate } from '../types';
+import apiClient from './apiClient';
+import type { AlertThreshold, AlertThresholdUpdate } from '@/types';
 
 export const getThresholds = async (): Promise<AlertThreshold[]> => {
     const response = await apiClient.get('/thresholds');

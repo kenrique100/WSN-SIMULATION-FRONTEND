@@ -1,4 +1,13 @@
-import { Drawer, List, ListItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
+import {
+    Drawer,
+    List,
+    ListItemIcon,
+    ListItemText,
+    Divider,
+    Toolbar,
+    Box,
+    ListItemButton
+} from '@mui/material';
 import {
     Dashboard as DashboardIcon,
     Sensors as NodesIcon,
@@ -8,6 +17,7 @@ import {
 } from '@mui/icons-material';
 import { NavLink } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
+import { useAppStore } from '@/store';
 
 const drawerWidth = 240;
 
@@ -23,63 +33,70 @@ const StyledNavLink = styled(NavLink)(({ theme }) => ({
 }));
 
 export default function Sidebar() {
+    const sidebarOpen = useAppStore((state) => state.sidebarOpen);
+
     return (
-        <Drawer
-            variant="permanent"
-            sx={{
+      <Drawer
+        variant="persistent"
+        open={sidebarOpen}
+        sx={{
+            width: drawerWidth,
+            flexShrink: 0,
+            [`& .MuiDrawer-paper`]: {
                 width: drawerWidth,
-                flexShrink: 0,
-                [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
-            }}
-        >
-            <Toolbar /> {/* For proper spacing below app bar */}
-            <Box sx={{ overflow: 'auto' }}>
-                <List>
-                    <StyledNavLink to="/">
-                        <ListItem button>
-                            <ListItemIcon>
-                                <DashboardIcon />
-                            </ListItemIcon>
-                            <ListItemText primary="Dashboard" />
-                        </ListItem>
-                    </StyledNavLink>
-                    <StyledNavLink to="/nodes">
-                        <ListItem button>
-                            <ListItemIcon>
-                                <NodesIcon />
-                            </ListItemIcon>
-                            <ListItemText primary="Nodes" />
-                        </ListItem>
-                    </StyledNavLink>
-                    <StyledNavLink to="/alerts">
-                        <ListItem button>
-                            <ListItemIcon>
-                                <AlertsIcon />
-                            </ListItemIcon>
-                            <ListItemText primary="Alerts" />
-                        </ListItem>
-                    </StyledNavLink>
-                    <StyledNavLink to="/readings">
-                        <ListItem button>
-                            <ListItemIcon>
-                                <ReadingsIcon />
-                            </ListItemIcon>
-                            <ListItemText primary="Readings" />
-                        </ListItem>
-                    </StyledNavLink>
-                </List>
-                <Divider />
-                <List>
-                    <StyledNavLink to="/settings">
-                        <ListItem button>
-                            <ListItemIcon>
-                                <SettingsIcon />
-                            </ListItemIcon>
-                            <ListItemText primary="Settings" />
-                        </ListItem>
-                    </StyledNavLink>
-                </List>
-            </Box>
-        </Drawer>
+                boxSizing: 'border-box',
+                transition: 'width 0.3s ease',
+            },
+        }}
+      >
+          <Toolbar /> {/* Spacer to align with AppBar */}
+          <Box sx={{ overflow: 'auto' }}>
+              <List>
+                  <StyledNavLink to="/">
+                      <ListItemButton>
+                          <ListItemIcon>
+                              <DashboardIcon />
+                          </ListItemIcon>
+                          <ListItemText primary="Dashboard" />
+                      </ListItemButton>
+                  </StyledNavLink>
+                  <StyledNavLink to="/nodes">
+                      <ListItemButton>
+                          <ListItemIcon>
+                              <NodesIcon />
+                          </ListItemIcon>
+                          <ListItemText primary="Nodes" />
+                      </ListItemButton>
+                  </StyledNavLink>
+                  <StyledNavLink to="/alerts">
+                      <ListItemButton>
+                          <ListItemIcon>
+                              <AlertsIcon />
+                          </ListItemIcon>
+                          <ListItemText primary="Alerts" />
+                      </ListItemButton>
+                  </StyledNavLink>
+                  <StyledNavLink to="/readings">
+                      <ListItemButton>
+                          <ListItemIcon>
+                              <ReadingsIcon />
+                          </ListItemIcon>
+                          <ListItemText primary="Readings" />
+                      </ListItemButton>
+                  </StyledNavLink>
+              </List>
+              <Divider />
+              <List>
+                  <StyledNavLink to="/settings">
+                      <ListItemButton>
+                          <ListItemIcon>
+                              <SettingsIcon />
+                          </ListItemIcon>
+                          <ListItemText primary="Settings" />
+                      </ListItemButton>
+                  </StyledNavLink>
+              </List>
+          </Box>
+      </Drawer>
     );
 }

@@ -29,9 +29,12 @@ export function useApi<T>(apiFunction: ApiFunction<T>, immediate = false): UseAp
 
     useEffect(() => {
         if (immediate) {
-            execute();
+            execute().catch((err) => {
+                console.error('Error during immediate execute:', err);
+            });
         }
     }, [execute, immediate]);
+
 
     return { data, error, isLoading, execute };
 }

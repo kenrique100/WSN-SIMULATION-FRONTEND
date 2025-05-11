@@ -1,5 +1,10 @@
-import { createContext, useContext, ReactNode, useState } from 'react';
-import { Alert, AlertColor, Snackbar } from '@mui/material';
+import {
+    createContext,
+    useContext,
+    ReactNode,
+    useState
+} from 'react';
+import { AlertColor, Snackbar } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
 
 interface Notification {
@@ -11,13 +16,18 @@ interface NotificationContextType {
     showNotification: (message: string, severity?: AlertColor) => void;
 }
 
-const NotificationContext = createContext<NotificationContextType>(null!);
+const NotificationContext = createContext<NotificationContextType>({
+    showNotification: () => {}
+});
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
     const [notification, setNotification] = useState<Notification | null>(null);
     const [open, setOpen] = useState(false);
 
-    const showNotification = (message: string, severity: AlertColor = 'info') => {
+    const showNotification = (
+      message: string,
+      severity: AlertColor = 'info'
+    ) => {
         setNotification({ message, severity });
         setOpen(true);
     };
@@ -27,27 +37,25 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <NotificationContext.Provider value={{ showNotification }}>
-            {children}
-            <Snackbar
-                open={open}
-                autoHideDuration={6000}
+      <NotificationContext.Provider value={{ showNotification }}>
+          {children}
+          <Snackbar
+            open={open}
+            autoHideDuration={6000}
+            onClose={handleClose}
+            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+              <MuiAlert
+                elevation={6}
+                variant="filled"
                 onClose={handleClose}
-                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-            >
-                <MuiAlert
-                    elevation={6}
-                    variant="filled"
-                    onClose={handleClose}
-                    severity={notification?.severity}
-                >
-                    {notification?.message}
-                </MuiAlert>
-            </Snackbar>
-        </NotificationContext.Provider>
+                severity={notification?.severity}
+              >
+                  {notification?.message}
+              </MuiAlert>
+          </Snackbar>
+      </NotificationContext.Provider>
     );
 }
 
-export function useNotification() {
-    return useContext(NotificationContext);
-}
+export const useNotification = () => useContext(NotificationContext);
