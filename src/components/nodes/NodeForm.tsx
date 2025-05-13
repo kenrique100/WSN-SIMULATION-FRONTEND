@@ -1,105 +1,106 @@
+// src/components/nodes/NodeForm.tsx
 import React, { useState } from 'react';
-import {
-    Box, TextField, Button, Stack, FormControl, InputLabel,
-    Select, MenuItem, FormHelperText, SelectChangeEvent
-} from '@mui/material';
-import type { SensorNode, NodeFormData } from '@/types';
-import { NODE_STATUSES, type NodeStatus } from '@/types/constants';
+import { Box, TextField, Button, Stack } from '@mui/material';
+import type { SensorNode, NodeStatus } from '@/types';
+import { NODE_STATUSES } from '@/types';
+import { validateNodeForm } from '@/utils/validators';
 
 interface NodeFormProps {
-    onSubmit: (data: NodeFormData) => void;
+    onSubmit: (data: {
+        name: string;
+        location: string;
+        latitude?: number;
+        longitude?: number;
+        status: NodeStatus;
+    }) => void;
     onCancel: () => void;
     node?: SensorNode | null;
 }
 
 export default function NodeForm({ onSubmit, onCancel, node }: NodeFormProps) {
-    const [formData, setFormData] = useState<NodeFormData>({
-        name: node?.name || '',
-        location: node?.location || '',
-        latitude: node?.latitude,
-        longitude: node?.longitude,
-        status: (node?.status as NodeStatus) || 'active' // FIX: Cast ensures it's of correct type
-    });
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: name === 'latitude' || name === 'longitude'
-              ? parseFloat(value) || undefined
-              : value
-        }));
-    };
-
-    const handleSelectChange = (e: SelectChangeEvent) => {
-        const value = e.target.value as NodeStatus;
-        setFormData(prev => ({
-            ...prev,
-            status: value
-        }));
-    };
+    const [name, setName] = useState(node?.name || '');
+    const [location, setLocation] = useState(node?.location || '');
+    const [latitude, setLatitude] = useState(node?.latitude?.toString() || '');
+    const [longitude, setLongitude] = useState(node?.longitude?.toString() || '');
+    const [status, setStatus] = useState<NodeStatus>(node?.status || 'active');
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(formData);
+
+        const validation = validateNodeForm({ name, location });
+        if (!validation.valid) {
+            setErrors(validation.errors);
+            return;
+        }
+
+        onSubmit({
+            name,
+            location,
+            latitude: latitude ? parseFloat(latitude) : undefined,
+            longitude: longitude ? parseFloat(longitude) : undefined,
+            status
+        });
     };
 
     return (
       <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
           <Stack spacing={2}>
               <TextField
-                required
-                fullWidth
                 label="Name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-              />
-              <TextField
+                value={name}
+                onChange={(e) => {
+                    setName(e.target.value);
+                    setErrors(prev => ({ ...prev, name: '' }));
+                }}
+                error={!!errors.name}
+                helperText={errors.name}
                 required
                 fullWidth
+              />
+              <TextField
                 label="Location"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
+                value={location}
+                onChange={(e) => {
+                    setLocation(e.target.value);
+                    setErrors(prev => ({ ...prev, location: '' }));
+                }}
+                error={!!errors.location}
+                helperText={errors.location}
+                required
+                fullWidth
               />
               <TextField
-                fullWidth
                 label="Latitude"
-                name="latitude"
                 type="number"
-                value={formData.latitude ?? ''}
-                onChange={handleChange}
+                value={latitude}
+                onChange={(e) => setLatitude(e.target.value)}
+                fullWidth
               />
               <TextField
-                fullWidth
                 label="Longitude"
-                name="longitude"
                 type="number"
-                value={formData.longitude ?? ''}
-                onChange={handleChange}
+                value={longitude}
+                onChange={(e) => setLongitude(e.target.value)}
+                fullWidth
               />
-              <FormControl fullWidth>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    name="status"
-                    value={formData.status}
-                    label="Status"
-                    onChange={handleSelectChange}
-                  >
-                      {NODE_STATUSES.map(status => (
-                        <MenuItem key={status.value} value={status.value}>
-                            {status.label}
-                        </MenuItem>
-                      ))}
-                  </Select>
-                  <FormHelperText>Select node status</FormHelperText>
-              </FormControl>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
-                  <Button variant="outlined" onClick={onCancel}>
-                      Cancel
-                  </Button>
-                  <Button type="submit" variant="contained" color="primary">
+              <TextField
+                label="Status"
+                select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as NodeStatus)}
+                fullWidth
+                SelectProps={{ native: true }}
+              >
+                  {NODE_STATUSES.map((statusOption) => (
+                    <option key={statusOption.value} value={statusOption.value}>
+                        {statusOption.label}
+                    </option>
+                  ))}
+              </TextField>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                  <Button onClick={onCancel}>Cancel</Button>
+                  <Button type="submit" variant="contained">
                       {node ? 'Update' : 'Create'}
                   </Button>
               </Box>

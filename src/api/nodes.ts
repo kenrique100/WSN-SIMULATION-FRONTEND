@@ -1,50 +1,58 @@
 import apiClient from './apiClient';
-import type { Node, NodeFormData, Sensor, SensorNode } from '@/types';
+import type {
+    SensorNode,
+    NodeSensor,
+    NodeStats,
+    PaginatedResponse
+} from '@/types';
 
-export const getNodes = async (): Promise<SensorNode[]> => {
-    const response = await apiClient.get('/nodes');
-    const nodes: Node[] = response.data;
-
-    return nodes.map((node): SensorNode => ({
-        nodeId: parseInt(node.id), // Convert string to number
-        name: node.name,
-        location: node.location,
-        status: node.status,
-        lastHeartbeat: node.lastPing, // Mapping field from Node -> SensorNode
-        latitude: undefined,          // If not returned by backend
-        longitude: undefined
-    }));
-};
-
-export const getNodeStatusStats = async (): Promise<{
-    online: number;
-    offline: number;
-    warning: number;
-}> => {
-    const response = await apiClient.get('/nodes/stats');
+// Properly typed API functions
+export const getNodes = async (params: { page?: number; size?: number }): Promise<PaginatedResponse<SensorNode>> => {
+    console.log('Fetching nodes with params:', params);
+    const response = await apiClient.get('/api/nodes', { params });
+    console.log('Fetched nodes:', response.data);
     return response.data;
 };
 
-export const fetchNodeDetails = async (id: string): Promise<Node> => {
-    const response = await apiClient.get(`/nodes/${id}`);
+export const getNodeStatusStats = async (): Promise<NodeStats> => {
+    console.log('Fetching node status stats');
+    const response = await apiClient.get('/api/nodes/stats');
+    console.log('Fetched node status stats:', response.data);
     return response.data;
 };
 
-export const createNode = async (data: NodeFormData): Promise<Node> => {
-    const response = await apiClient.post('/nodes', data);
+export const getNodeById = async (id: number): Promise<SensorNode> => {
+    console.log(`Fetching node by ID: ${id}`);
+    const response = await apiClient.get(`/api/nodes/${id}`);
+    console.log('Fetched node:', response.data);
     return response.data;
 };
 
-export const updateNode = async (id: string, data: NodeFormData): Promise<Node> => {
-    const response = await apiClient.put(`/nodes/${id}`, data);
+export const getNodeSensors = async (
+    nodeId: number,
+    params: { page?: number; size?: number }
+): Promise<PaginatedResponse<NodeSensor>> => {
+    console.log(`Fetching sensors for node ${nodeId} with params:`, params);
+    const response = await apiClient.get(`/api/nodes/${nodeId}/sensors`, { params });
+    console.log(`Fetched sensors for node ${nodeId}:`, response.data);
     return response.data;
 };
 
-export const deleteNode = async (id: string): Promise<void> => {
-    await apiClient.delete(`/nodes/${id}`);
+export const createNode = async (data: {
+    name: string;
+    location: string;
+    latitude?: number;
+    longitude?: number;
+    status?: string;
+}): Promise<SensorNode> => {
+    console.log('Creating node with data:', data);
+    const response = await apiClient.post('/api/nodes', data);
+    console.log('Created node:', response.data);
+    return response.data;
 };
 
-export const fetchNodeSensors = async (nodeId: string): Promise<Sensor[]> => {
-    const response = await apiClient.get(`/nodes/${nodeId}/sensors`);
-    return response.data;
+export const deleteNode = async (id: number): Promise<void> => {
+    console.log(`Deleting node with ID: ${id}`);
+    await apiClient.delete(`/api/nodes/${id}`);
+    console.log(`Deleted node with ID: ${id}`);
 };

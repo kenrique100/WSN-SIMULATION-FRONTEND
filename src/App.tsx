@@ -1,20 +1,19 @@
 import { CssBaseline, ThemeProvider } from '@mui/material';
-import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { AuthProvider } from '@/contexts/AuthContext';
 import AppRoutes from '@/routes/AppRoutes';
+import theme from '@/assets/theme';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
-import { WebSocketProvider } from '@/contexts/WebSocketContext';
 import ErrorBoundary from '@/components/common/ErroBoundary';
-import theme from '../public/assets/styles/theme';
+import { WebSocketProvider } from '@/contexts/WebSocketContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
     },
   },
 });
@@ -24,22 +23,19 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <BrowserRouter>
+        <AuthProvider>
           <NotificationProvider>
-            <AuthProvider>
-              <WebSocketProvider>
-                <ErrorBoundary>
-                  <AppRoutes />
-                </ErrorBoundary>
-              </WebSocketProvider>
-            </AuthProvider>
+            <WebSocketProvider>
+              <ErrorBoundary>
+                <AppRoutes />
+              </ErrorBoundary>
+            </WebSocketProvider>
           </NotificationProvider>
-        </BrowserRouter>
+        </AuthProvider>
       </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }
-
 
 export default App;

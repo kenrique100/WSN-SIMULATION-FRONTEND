@@ -1,52 +1,73 @@
 import { createContext, useContext, ReactNode, useEffect, useState, useCallback } from 'react';
-import { useAuth } from './AuthContext';
+import { Alert } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface WebSocketContextType {
-    alerts: any[];
+    alerts: Alert[];
     readings: any[];
     sendMessage: (message: string) => void;
 }
 
-const WebSocketContext = createContext<WebSocketContextType>({
-    alerts: [],
-    readings: [],
-    sendMessage: () => {}
-});
+const WebSocketContext = createContext<WebSocketContextType | null>(null);
 
-export function WebSocketProvider({ children }: { children: ReactNode }) {
+interface WebSocketProviderProps {
+    children: ReactNode;
+}
+
+export function WebSocketProvider({ children }: WebSocketProviderProps) {
     const [socket, setSocket] = useState<WebSocket | null>(null);
-    const [alerts, setAlerts] = useState<any[]>([]);
+    const [alerts, setAlerts] = useState<Alert[]>([]);
     const [readings, setReadings] = useState<any[]>([]);
-    const { user } = useAuth();
+    const { user, token } = useAuth();
 
-    useEffect(() => {
-        if (user) {
-            const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}?token=${localStorage.getItem('accessToken')}`);
+    const connectWebSocket = useCallback(() => {
+        if (!user || !token) return;
 
-            ws.onopen = () => {
-                console.log('WebSocket connected');
-                setSocket(ws);
-            };
+        const wsUrl = `${import.meta.env.VITE_WS_URL}?token=${token}`;
+        const ws = new WebSocket(wsUrl);
 
-            ws.onmessage = (event) => {
+        const handleMessage = (event: MessageEvent) => {
+            try {
                 const data = JSON.parse(event.data);
                 if (data.type === 'alert') {
-                    setAlerts(prev => [...prev, data.data]);
+                    setAlerts(prev => [data.data, ...prev].slice(0, 50)); // Keep only latest 50 alerts
                 } else if (data.type === 'reading') {
-                    setReadings(prev => [...prev, data.data]);
+                    setReadings(prev => [data.data, ...prev].slice(0, 50));
                 }
-            };
+            } catch (err) {
+                console.error('Failed to parse WebSocket message:', err);
+            }
+        };
 
-            ws.onclose = () => {
-                console.log('WebSocket disconnected');
-                setSocket(null);
-            };
+        ws.addEventListener('open', () => {
+            console.log('WebSocket connected');
+            setSocket(ws);
+        });
 
-            return () => {
+        ws.addEventListener('message', handleMessage);
+
+        ws.addEventListener('close', () => {
+            console.log('WebSocket disconnected');
+            setSocket(null);
+            // Attempt to reconnect after 5 seconds
+            setTimeout(connectWebSocket, 5000);
+        });
+
+        ws.addEventListener('error', (error) => {
+            console.error('WebSocket error:', error);
+        });
+
+        return ws;
+    }, [user, token]);
+
+    useEffect(() => {
+        const ws = connectWebSocket();
+        return () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.close();
-            };
-        }
-    }, [user]);
+            }
+        };
+    }, [connectWebSocket]);
 
     const sendMessage = useCallback((message: string) => {
         if (socket && socket.readyState === WebSocket.OPEN) {
@@ -60,7 +81,17 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         sendMessage
     };
 
-    return <WebSocketContext.Provider value={value}>{children}</WebSocketContext.Provider>;
+    return (
+      <WebSocketContext.Provider value={value}>
+          {children}
+      </WebSocketContext.Provider>
+    );
 }
 
-export const useWebSocket = () => useContext(WebSocketContext);
+export function useWebSocket() {
+    const context = useContext(WebSocketContext);
+    if (!context) {
+        throw new Error('useWebSocket must be used within a WebSocketProvider');
+    }
+    return context;
+}

@@ -1,24 +1,28 @@
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { CircularProgress, Box } from '@mui/material';
 
 interface LoadingProps {
-    message?: string;
+    fullScreen?: boolean;
 }
 
-export default function Loading({ message = 'Loading...' }: LoadingProps) {
+export default function Loading({ fullScreen = false }: LoadingProps) {
     return (
         <Box
             sx={{
                 display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
                 justifyContent: 'center',
-                height: '100%',
-                gap: 2,
-                p: 4
+                alignItems: 'center',
+                ...(fullScreen && {
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'background.paper',
+                    zIndex: 9999
+                })
             }}
         >
             <CircularProgress />
-            <Typography variant="body1">{message}</Typography>
         </Box>
     );
 }

@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { Box, Typography } from '@mui/material';
 import {
     BarChart,
@@ -10,21 +9,25 @@ import {
     Legend,
     ResponsiveContainer,
 } from 'recharts';
-import { getNodeStatusStats } from '@/api/nodes';
+import { NodeStats } from '@/types';
 
-export default function NodeStatusChart() {
-    const { data: stats, isLoading, error } = useQuery({
-        queryKey: ['nodeStatusStats'],
-        queryFn: getNodeStatusStats,
-    });
+interface NodeStatusChartProps {
+    stats?: NodeStats;
+}
 
-    if (isLoading) return <Typography>Loading...</Typography>;
-    if (error) return <Typography color="error">Error loading node statistics</Typography>;
+export default function NodeStatusChart({ stats }: NodeStatusChartProps) {
+    if (!stats) {
+        return (
+          <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Typography>No data available</Typography>
+          </Box>
+        );
+    }
 
     const chartData = [
-        { name: 'Online', value: stats?.online || 0 },
-        { name: 'Offline', value: stats?.offline || 0 },
-        { name: 'Warning', value: stats?.warning || 0 },
+        { name: 'Active', value: stats.active },
+        { name: 'Inactive', value: stats.inactive },
+        { name: 'Maintenance', value: stats.maintenance },
     ];
 
     return (
@@ -39,7 +42,12 @@ export default function NodeStatusChart() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="value" fill="#8884d8" name="Node Count" />
+                  <Bar
+                    dataKey="value"
+                    fill="#8884d8"
+                    name="Node Count"
+                    radius={[4, 4, 0, 0]}
+                  />
               </BarChart>
           </ResponsiveContainer>
       </Box>

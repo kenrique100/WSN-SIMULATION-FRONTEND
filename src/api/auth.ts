@@ -18,7 +18,7 @@ export const register = async (data: {
     return response.data;
 };
 
-export const refreshToken = async (): Promise<AuthResponse> => {
+export const refreshToken = async (signal: AbortSignal | undefined): Promise<AuthResponse> => {
     const response = await axios.post(`${API_URL}/auth/refresh`);
     return response.data;
 };

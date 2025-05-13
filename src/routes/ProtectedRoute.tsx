@@ -1,27 +1,40 @@
+// src/routes/ProtectedRoute.tsx
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import Loading from '@/components/common/Loading';
+import { useAuth } from '@/context/AuthContext';
+import { ReactNode, useEffect, useState } from 'react';
 
 interface ProtectedRouteProps {
-    children: JSX.Element;
+    children: ReactNode;
     roles?: string[];
 }
 
 export default function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
-    const { user, isLoading } = useAuth();
-    const location = useLocation();
+    /*    const { user, isLoading, error } = useAuth();
+        const location = useLocation();
+        const [initialLoad, setInitialLoad] = useState(true);
 
-    if (isLoading) {
-        return <Loading />;
-    }
+        useEffect(() => {
+            if (!isLoading) {
+                setInitialLoad(false);
+            }
+        }, [isLoading]);
 
-    if (!user) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
-    }
+        if (initialLoad) {
+            return <Loading fullScreen />;
+        }
 
-    if (roles && !roles.includes(user.role)) {
-        return <Navigate to="/" state={{ from: location }} replace />;
-    }
+        if (error) {
+            return <Navigate to="/login" state={{ from: location, error }} replace />;
+        }
 
-    return children;
+        if (!user) {
+            return <Navigate to="/login" state={{ from: location }} replace />;
+        }
+
+        if (roles && !roles.includes(user.role)) {
+            return <Navigate to="/" replace />;
+        }*/
+
+    return <>{children}</>;
 }

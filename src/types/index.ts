@@ -1,3 +1,4 @@
+// types.ts
 import { SelectChangeEvent } from '@mui/material';
 
 export interface User {
@@ -32,8 +33,17 @@ export interface SensorNode {
     location: string;
     latitude?: number;
     longitude?: number;
-    status: string;
+    status: NodeStatus;
     lastHeartbeat?: string;
+}
+
+export interface NodeSensor {
+    sensorId: number;
+    nodeId: number;
+    typeId: number;
+    minValue?: number;
+    maxValue?: number;
+    calibrationDate?: string;
 }
 
 export interface Reading {
@@ -45,17 +55,21 @@ export interface Reading {
 
 export interface Alert {
     alertId: number;
-    nodeId: number;
     sensorId: number;
-    type: 'threshold' | 'status' | 'battery';
-    severity: 'info' | 'warning' | 'critical';
     readingId: number;
-    alertLevel: string;
+    alertLevel: AlertLevel;
     message?: string;
     timestamp: string;
     acknowledged: boolean;
     acknowledgedBy?: number;
     acknowledgedAt?: string;
+}
+export interface AlertStats {
+    total: number;
+    critical: number;
+    warning: number;
+    info: number;
+    acknowledged: number;
 }
 
 export interface NetworkTopology {
@@ -64,23 +78,6 @@ export interface NetworkTopology {
     targetNodeId: number;
     signalStrength: number;
     lastUpdated: string;
-}
-
-export interface Node {
-    id: string;
-    name: string;
-    location: string;
-    status: 'online' | 'offline' | 'warning';
-    lastPing: string;
-    batteryLevel: number;
-    sensors: Sensor[];
-}
-
-export interface Sensor {
-    id: string;
-    type: string;
-    unit: string;
-    lastReading?: Reading;
 }
 
 export interface Threshold {
@@ -133,8 +130,6 @@ export interface AlertThresholdUpdate {
     notificationEnabled: boolean;
 }
 
-// === Added from reusable components ===
-
 export interface FormButtonsProps {
     onCancel: () => void;
     isEdit?: boolean;
@@ -153,3 +148,34 @@ export interface LabeledSelectProps {
     onChange: (e: SelectChangeEvent) => void;
     helperText?: string;
 }
+
+export interface NodeStats {
+    total: number;
+    active: number;
+    inactive: number;
+    maintenance?: number;
+}
+export interface AlertStats {
+    total: number;
+    critical: number;
+    warning: number;
+    info: number;
+    acknowledged: number;
+}
+
+export interface PaginatedResponse<T> {
+    content: T[];
+    totalElements: number;
+    totalPages: number;
+    page: number;
+    size: number;
+}
+
+export const NODE_STATUSES = [
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+    { value: 'maintenance', label: 'Maintenance' },
+] as const;
+
+export type NodeStatus = typeof NODE_STATUSES[number]['value'];
+export type AlertLevel = 'INFO' | 'WARNING' | 'CRITICAL';

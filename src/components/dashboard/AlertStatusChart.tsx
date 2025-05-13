@@ -1,29 +1,27 @@
-import { useQuery } from '@tanstack/react-query';
 import { Box, Typography } from '@mui/material';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { getAlertStats } from '@/api/alerts';
+import { AlertStats } from '@/types';
 
 const COLORS = ['#FF4C4C', '#FFA500', '#00BFFF', '#8BC34A'];
 
-export default function AlertStatusChart() {
-    const { data: stats, isLoading, error } = useQuery({
-        queryKey: ['alertStats'],
-        queryFn: getAlertStats,
-    });
+interface AlertStatusChartProps {
+    stats?: AlertStats;
+}
 
-    if (isLoading) {
-        return <Typography>Loading...</Typography>;
-    }
-
-    if (error) {
-        return <Typography color="error">Error loading alert statistics</Typography>;
+export default function AlertStatusChart({ stats }: AlertStatusChartProps) {
+    if (!stats) {
+        return (
+          <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Typography>No data available</Typography>
+          </Box>
+        );
     }
 
     const chartData = [
-        { name: 'Critical', value: stats?.critical || 0 },
-        { name: 'Warning', value: stats?.warning || 0 },
-        { name: 'Info', value: stats?.info || 0 },
-        { name: 'Acknowledged', value: stats?.acknowledged || 0 },
+        { name: 'Critical', value: stats.critical },
+        { name: 'Warning', value: stats.warning },
+        { name: 'Info', value: stats.info },
+        { name: 'Acknowledged', value: stats.acknowledged },
     ];
 
     return (

@@ -1,20 +1,22 @@
-export function formatDate(date: Date): string {
-    return date.toLocaleString();
-}
+import type { NodeStatus } from '@/types';
 
 export function formatReadingValue(value: number, unit: string): string {
     return `${value.toFixed(2)} ${unit}`;
 }
 
-export function getStatusColor(status: string): string {
-    switch (status.toLowerCase()) {
-        case 'online':
-            return 'green';
-        case 'offline':
-            return 'red';
-        case 'warning':
-            return 'orange';
+export function getStatusColor(status: NodeStatus): string {
+    switch (status) {
+        case 'active':
+            return 'success.main';
+        case 'inactive':
+            return 'error.main';
+        case 'maintenance':
+            return 'warning.main';
         default:
-            return 'gray';
+            return 'text.disabled';
     }
+}
+
+export function formatDate(date: Date): string {
+    return date.toLocaleString();
 }

@@ -12,11 +12,6 @@ export const NODE_STATUSES = [
     { value: 'maintenance', label: 'Maintenance' },
 ] as const;
 
-export const ALERT_LEVELS = [
-    { value: 'info', label: 'Info' },
-    { value: 'warning', label: 'Warning' },
-    { value: 'critical', label: 'Critical' },
-] as const;
 
 export const ALERT_TYPES = [
     { value: 'threshold', label: 'Threshold' },
@@ -26,5 +21,4 @@ export const ALERT_TYPES = [
 
 export type SensorType = typeof SENSOR_TYPES[number];
 export type NodeStatus = typeof NODE_STATUSES[number]['value'];
-export type AlertLevel = typeof ALERT_LEVELS[number]['value'];
 export type AlertType = typeof ALERT_TYPES[number]['value'];
