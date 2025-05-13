@@ -6,6 +6,7 @@ interface WebSocketContextType {
     alerts: Alert[];
     readings: any[];
     sendMessage: (message: string) => void;
+    isConnected: boolean;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
@@ -16,6 +17,7 @@ interface WebSocketProviderProps {
 
 export function WebSocketProvider({ children }: WebSocketProviderProps) {
     const [socket, setSocket] = useState<WebSocket | null>(null);
+    const [isConnected, setIsConnected] = useState(false);
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [readings, setReadings] = useState<any[]>([]);
     const { user, token } = useAuth();
@@ -41,6 +43,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 
         ws.addEventListener('open', () => {
             console.log('WebSocket connected');
+            setIsConnected(true);
             setSocket(ws);
         });
 
@@ -48,6 +51,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 
         ws.addEventListener('close', () => {
             console.log('WebSocket disconnected');
+            setIsConnected(false);
             setSocket(null);
             // Attempt to reconnect after 5 seconds
             setTimeout(connectWebSocket, 5000);
@@ -78,7 +82,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     const value = {
         alerts,
         readings,
-        sendMessage
+        sendMessage,
+        isConnected
     };
 
     return (

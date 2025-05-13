@@ -76,6 +76,8 @@ export interface NetworkTopology {
     linkId: number;
     sourceNodeId: number;
     targetNodeId: number;
+    sourceNodeName?: string;
+    targetNodeName?: string;
     signalStrength: number;
     lastUpdated: string;
 }
@@ -95,14 +97,6 @@ export interface ReadingFilter {
     endTime?: string;
     limit?: number;
     hours?: number;
-}
-
-export interface NodeFormData {
-    name: string;
-    location: string;
-    latitude?: number;
-    longitude?: number;
-    status: string;
 }
 
 export interface LoginData {

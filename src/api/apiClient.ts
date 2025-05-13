@@ -1,32 +1,35 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 const apiClient = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
-    headers: {
-        'Content-Type': 'application/json',
-    },
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-apiClient.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 apiClient.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            localStorage.removeItem('accessToken');
-            window.location.href = '/login';
-        }
-        return Promise.reject(error);
+  (response) => response,
+  (error: AxiosError) => {
+    if (error.code === 'ECONNREFUSED') {
+      throw new Error('Backend service is unavailable. Please try again later.');
     }
+
+    if (error.response) {
+      const message = (error.response.data as { message?: string })?.message || error.message;
+      throw new Error(message);
+    }
+
+    throw error;
+  }
 );
 
 export default apiClient;

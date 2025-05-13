@@ -1,9 +1,9 @@
-// src/components/alerts/AlertList.tsx
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     Box, Typography, TextField, IconButton,
-    Tooltip, Button, CircularProgress, Alert as MuiAlert
+    Tooltip, Button, CircularProgress, Alert as MuiAlert,
+    Paper
 } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
 import { getAlerts, acknowledgeAlert } from '@/api/alerts';
@@ -22,10 +22,12 @@ export default function AlertList() {
         isLoading,
         isError,
         error,
-        refetch
+        refetch,
+        isRefetching
     } = useQuery({
         queryKey: ['alerts', page, size, showAcknowledged],
         queryFn: () => getAlerts(showAcknowledged ? undefined : false, page, size),
+        retry: 1,
     });
 
     const handleAcknowledge = async (alertId: number) => {
@@ -40,60 +42,82 @@ export default function AlertList() {
     };
 
     const filteredAlerts = data?.content?.filter(alert =>
-        alert.message?.toLowerCase().includes(searchTerm.toLowerCase())
+      alert.message?.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
 
     if (isLoading) {
         return (
-            <Box display="flex" justifyContent="center" mt={4}>
-                <CircularProgress />
-            </Box>
+          <Box display="flex" justifyContent="center" mt={4}>
+              <CircularProgress />
+          </Box>
         );
     }
 
-    if (isError) {
+    if (isError && !data) {
         return (
-            <MuiAlert severity="error" sx={{ mt: 2 }}>
-                Error loading alerts: {error.message}
-            </MuiAlert>
+          <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <MuiAlert severity="error" sx={{ mb: 2 }}>
+                  {error.message}
+              </MuiAlert>
+              <Typography variant="h6" gutterBottom>
+                  Offline Mode
+              </Typography>
+              <Typography sx={{ mb: 2 }}>
+                  Unable to connect to the server. Displaying limited functionality.
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<Refresh />}
+                onClick={() => refetch()}
+                disabled={isRefetching}
+              >
+                  Retry Connection
+              </Button>
+          </Paper>
         );
     }
 
     return (
-        <Box sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="h5">Alerts</Typography>
-                <Box>
-                    <TextField
-                        size="small"
-                        placeholder="Search alerts..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        sx={{ mr: 2 }}
-                    />
-                    <Button
-                        variant="outlined"
-                        onClick={() => setShowAcknowledged(!showAcknowledged)}
-                        sx={{ mr: 2 }}
-                    >
-                        {showAcknowledged ? 'Hide Acknowledged' : 'Show Only Pending'}
-                    </Button>
-                    <Tooltip title="Refresh">
-                        <IconButton onClick={() => refetch()}>
-                            <Refresh />
-                        </IconButton>
-                    </Tooltip>
-                </Box>
-            </Box>
+      <Box sx={{ p: 3 }}>
+          {isError && (
+            <MuiAlert severity="warning" sx={{ mb: 2 }}>
+                Connection issues detected. Some data may be outdated.
+            </MuiAlert>
+          )}
 
-            <AlertTable
-                alerts={filteredAlerts}
-                onAcknowledge={handleAcknowledge}
-                totalElements={data?.totalElements || 0}
-                page={page}
-                size={size}
-                onPageChange={setPage}
-            />
-        </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h5">Alerts</Typography>
+              <Box>
+                  <TextField
+                    size="small"
+                    placeholder="Search alerts..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    sx={{ mr: 2 }}
+                  />
+                  <Button
+                    variant="outlined"
+                    onClick={() => setShowAcknowledged(!showAcknowledged)}
+                    sx={{ mr: 2 }}
+                  >
+                      {showAcknowledged ? 'Hide Acknowledged' : 'Show Only Pending'}
+                  </Button>
+                  <Tooltip title="Refresh">
+                      <IconButton onClick={() => refetch()} disabled={isRefetching}>
+                          <Refresh />
+                      </IconButton>
+                  </Tooltip>
+              </Box>
+          </Box>
+
+          <AlertTable
+            alerts={filteredAlerts}
+            onAcknowledge={handleAcknowledge}
+            totalElements={data?.totalElements || 0}
+            page={page}
+            size={size}
+            onPageChange={setPage}
+          />
+      </Box>
     );
 }

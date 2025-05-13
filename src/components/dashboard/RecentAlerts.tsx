@@ -1,4 +1,13 @@
-import { Alert as MuiAlert, AlertTitle, List, ListItem, ListItemText } from '@mui/material';
+// src/components/dashboard/RecentAlerts.tsx
+import {
+  Alert as MuiAlert,
+  AlertTitle,
+  List,
+  ListItem,
+  ListItemText,
+  Chip,
+  Typography
+} from '@mui/material';
 import { Alert } from '@/types';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 
@@ -6,26 +15,51 @@ interface RecentAlertsProps {
   mockAlerts?: Alert[];
 }
 
-export default function RecentAlerts({ mockAlerts }: RecentAlertsProps) {
-  const { alerts } = useWebSocket();
+const getAlertColor = (level: 'INFO' | 'WARNING' | 'CRITICAL') => {
+  switch (level) {
+    case 'CRITICAL':
+      return 'error';
+    case 'WARNING':
+      return 'warning';
+    default:
+      return 'info';
+  }
+};
 
-  // Use mock data if provided, otherwise use WebSocket data
-  const displayAlerts = mockAlerts || (Array.isArray(alerts) ? alerts : []);
+export default function RecentAlerts({ mockAlerts }: RecentAlertsProps) {
+  const { alerts: wsAlerts, isConnected } = useWebSocket();
+  const displayAlerts =
+    mockAlerts || (Array.isArray(wsAlerts) ? wsAlerts.slice(0, 5) : []);
 
   return (
     <div>
       <MuiAlert severity="info">
-        <AlertTitle>Recent Alerts</AlertTitle>
+        <AlertTitle>
+          Recent Alerts
+          {!isConnected && mockAlerts && (
+            <Chip label="Demo" size="small" sx={{ ml: 1 }} />
+          )}
+        </AlertTitle>
+
         {displayAlerts.length === 0 ? (
-          <p>No recent alerts</p>
+          <Typography>No recent alerts</Typography>
         ) : (
           <List dense>
-            {displayAlerts.slice(0, 5).map((alert) => (
-              <ListItem key={alert.alertId || alert.timestamp}>
+            {displayAlerts.map((alert) => (
+              <ListItem key={alert.alertId || alert.timestamp} sx={{ py: 0.5 }}>
                 <ListItemText
                   primary={alert.message || 'Alert'}
                   secondary={new Date(alert.timestamp).toLocaleString()}
-                  secondaryTypographyProps={{ color: alert.acknowledged ? 'text.secondary' : 'error.main' }}
+                  secondaryTypographyProps={{
+                    color: alert.acknowledged ? 'text.secondary' : 'error.main',
+                    variant: 'caption'
+                  }}
+                />
+                <Chip
+                  label={alert.alertLevel}
+                  size="small"
+                  color={getAlertColor(alert.alertLevel)}
+                  sx={{ ml: 1 }}
                 />
               </ListItem>
             ))}
