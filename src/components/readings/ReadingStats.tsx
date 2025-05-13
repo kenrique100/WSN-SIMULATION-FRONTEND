@@ -1,7 +1,14 @@
-import { Box, Grid, Paper, Stack, Divider, Typography } from '@mui/material';
+import {
+  Box,
+  Grid,
+  Paper,
+  Stack,
+  Divider,
+  Typography,
+  Alert,
+} from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { getReadings, getNodeReadings } from '@/api/readings';
-import { formatDate } from '@/types/helpers';
+import { getReadingStats } from '@/api/readings';
 import {
   AccessTime,
   TrendingUp,
@@ -10,7 +17,18 @@ import {
   CalendarToday,
 } from '@mui/icons-material';
 import Loading from '@/components/common/Loading';
+import { useNotification } from '@/contexts/NotificationContext';
 import React from 'react';
+
+interface ReadingStats {
+  average?: number;
+  min?: number;
+  max?: number;
+  count?: number;
+  firstReading?: string;
+  lastReading?: string;
+  trend?: 'up' | 'down' | 'stable';
+}
 
 interface ReadingStatsProps {
   sensorId?: number;
@@ -18,72 +36,27 @@ interface ReadingStatsProps {
   hours?: number;
 }
 
-interface StatsData {
-  average: number;
-  min: number;
-  max: number;
-  count: number;
-  firstReading: string;
-  lastReading: string;
-  trend: 'up' | 'down' | 'stable';
-}
-
 export default function ReadingStats({ sensorId, nodeId, hours = 24 }: ReadingStatsProps) {
-  const queryKey = sensorId
-    ? ['readings', sensorId, hours]
-    : ['nodeReadings', nodeId, hours];
+  const { showNotification } = useNotification();
 
-  const queryFn = sensorId
-    ? () =>
-      getReadings({
-        sensorId: sensorId,
-        limit: undefined,
-        endTime: undefined,
-        startTime: undefined,
-      })
-    : () => getNodeReadings(nodeId!, hours);
-
-  const { data: readings, isLoading, error } = useQuery({
-    queryKey,
-    queryFn,
+  const {
+    data: stats,
+    isLoading,
+    isError,
+    error,
+  } = useQuery<ReadingStats, Error>({
+    queryKey: ['readingStats', sensorId, nodeId, hours],
+    queryFn: () => getReadingStats(sensorId, nodeId, hours),
   });
 
-  if (isLoading) return <Loading />;
-  if (error) return <Box sx={{ color: 'error.main' }}>Error loading statistics</Box>;
-  if (!readings || readings.length === 0) {
-    return <Box>No readings available for the selected period</Box>;
-  }
-
-  const calculateStats = (): StatsData => {
-    const values = readings.map((r) => r.value);
-    const timestamps = readings.map((r) => new Date(r.timestamp).getTime());
-
-    const average = values.reduce((a, b) => a + b, 0) / values.length;
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-
-    let trend: 'up' | 'down' | 'stable' = 'stable';
-    if (values.length > 1) {
-      const first = values[0];
-      const last = values[values.length - 1];
-      const diff = last - first;
-
-      if (diff > 0.1) trend = 'up';
-      else if (diff < -0.1) trend = 'down';
+  React.useEffect(() => {
+    if (isError && error) {
+      showNotification(`Error loading statistics: ${error.message}`, 'error');
     }
+  }, [isError, error, showNotification]);
 
-    return {
-      average: parseFloat(average.toFixed(2)),
-      min: parseFloat(min.toFixed(2)),
-      max: parseFloat(max.toFixed(2)),
-      count: values.length,
-      firstReading: formatDate(new Date(Math.min(...timestamps))),
-      lastReading: formatDate(new Date(Math.max(...timestamps))),
-      trend,
-    };
-  };
-
-  const stats = calculateStats();
+  if (isLoading) return <Loading />;
+  if (isError) return <Alert severity="error">{error?.message || 'Error loading statistics'}</Alert>;
 
   const StatItem = ({
                       icon,
@@ -94,14 +67,26 @@ export default function ReadingStats({ sensorId, nodeId, hours = 24 }: ReadingSt
     title: string;
     value: string | number;
   }) => (
-    <Paper sx={{ p: 2, height: '100%' }}>
+    <Paper
+      elevation={1}
+      sx={{
+        p: 2.5,
+        borderRadius: 3,
+        height: '100%',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+          boxShadow: 6,
+          transform: 'scale(1.02)',
+        },
+      }}
+    >
       <Stack direction="row" alignItems="center" spacing={2}>
-        <Box sx={{ color: 'primary.main' }}>{icon}</Box>
+        <Box sx={{ color: 'primary.main', fontSize: 28 }}>{icon}</Box>
         <Box>
-          <Typography component="span" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+          <Typography variant="body2" color="text.secondary">
             {title}
           </Typography>
-          <Typography component="div" sx={{ fontSize: '1.25rem', fontWeight: 500 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
             {value}
           </Typography>
         </Box>
@@ -110,47 +95,66 @@ export default function ReadingStats({ sensorId, nodeId, hours = 24 }: ReadingSt
   );
 
   return (
-    <Box sx={{ mt: 2 }}>
-      <Typography variant="h6" gutterBottom>
+    <Box sx={{ mt: 3 }}>
+      <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
         Reading Statistics (Last {hours} hours)
       </Typography>
 
-      <Grid container spacing={3} sx={{ mb: 3 }}>
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <StatItem icon={<Straighten />} title="Average Value" value={stats.average} />
+          <StatItem icon={<Straighten />} title="Average Value" value={stats?.average?.toFixed(2) || 'N/A'} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatItem icon={<TrendingUp />} title="Maximum Value" value={stats.max} />
+          <StatItem icon={<TrendingUp />} title="Maximum Value" value={stats?.max?.toFixed(2) || 'N/A'} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatItem icon={<TrendingDown />} title="Minimum Value" value={stats.min} />
+          <StatItem icon={<TrendingDown />} title="Minimum Value" value={stats?.min?.toFixed(2) || 'N/A'} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatItem icon={<AccessTime />} title="Total Readings" value={stats.count} />
+          <StatItem icon={<AccessTime />} title="Total Readings" value={stats?.count || 0} />
         </Grid>
       </Grid>
 
       <Divider sx={{ my: 2 }} />
 
-      <Grid container spacing={3}>
+      <Grid container spacing={2.5}>
         <Grid item xs={12} md={6}>
-          <StatItem icon={<CalendarToday />} title="First Reading" value={stats.firstReading} />
+          <StatItem
+            icon={<CalendarToday />}
+            title="First Reading"
+            value={stats?.firstReading ? new Date(stats.firstReading).toLocaleString() : 'N/A'}
+          />
         </Grid>
         <Grid item xs={12} md={6}>
-          <StatItem icon={<CalendarToday />} title="Last Reading" value={stats.lastReading} />
+          <StatItem
+            icon={<CalendarToday />}
+            title="Last Reading"
+            value={stats?.lastReading ? new Date(stats.lastReading).toLocaleString() : 'N/A'}
+          />
         </Grid>
       </Grid>
 
-      <Divider sx={{ my: 2 }} />
+      <Divider sx={{ my: 3 }} />
 
-      <Paper sx={{ p: 2 }}>
-        <Typography component="span" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+      <Paper
+        elevation={1}
+        sx={{
+          p: 3,
+          borderRadius: 3,
+          transition: 'box-shadow 0.2s ease-in-out',
+          '&:hover': {
+            boxShadow: 6,
+          },
+        }}
+      >
+        <Typography variant="body2" color="text.secondary" gutterBottom>
           Trend Analysis
         </Typography>
-        <Typography>
-          {stats.trend === 'up' && 'Values are trending upward over the period'}
-          {stats.trend === 'down' && 'Values are trending downward over the period'}
-          {stats.trend === 'stable' && 'Values are relatively stable over the period'}
+        <Typography variant="body1">
+          {stats?.trend === 'up' && 'Values are trending upward over the period'}
+          {stats?.trend === 'down' && 'Values are trending downward over the period'}
+          {stats?.trend === 'stable' && 'Values are relatively stable over the period'}
+          {!stats?.trend && 'No trend data available'}
         </Typography>
       </Paper>
     </Box>

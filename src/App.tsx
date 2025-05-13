@@ -1,12 +1,13 @@
-import { CssBaseline, ThemeProvider } from '@mui/material';
+// src/App.tsx
+import { CssBaseline } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import AppRoutes from '@/routes/AppRoutes';
-import theme from '@/assets/theme';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
-import ErrorBoundary from '@/components/common/ErroBoundary';
 import { WebSocketProvider } from '@/contexts/WebSocketContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import ErrorBoundary from '@/components/common/ErroBoundary';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,7 +22,7 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider>
         <CssBaseline />
         <AuthProvider>
           <NotificationProvider>

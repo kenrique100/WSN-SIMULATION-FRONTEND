@@ -1,6 +1,13 @@
 import {
-  Box, Tabs, Tab, CircularProgress, Alert, Paper, Button, Typography
-} from '@mui/material'; // ⬅️ Added Typography here
+  Box,
+  Tabs,
+  Tab,
+  CircularProgress,
+  Alert,
+  Paper,
+  Button,
+  Typography
+} from '@mui/material';
 import React, { useState } from 'react';
 import NodeList from '@/components/nodes/NodeList';
 import NodeMap from '@/components/nodes/NodeMap';
@@ -8,6 +15,7 @@ import PageHeader from '@/components/common/PageHeader';
 import { useQuery } from '@tanstack/react-query';
 import { getNodes } from '@/api/nodes';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import PageWrapper from '@/components/layout/PageWrapper';
 
 export default function Nodes() {
   const [tabValue, setTabValue] = useState(0);
@@ -34,15 +42,17 @@ export default function Nodes() {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" mt={4}>
-        <CircularProgress />
-      </Box>
+      <PageWrapper>
+        <Box display="flex" justifyContent="center" mt={4}>
+          <CircularProgress />
+        </Box>
+      </PageWrapper>
     );
   }
 
   if (isError && nodes.length === 0) {
     return (
-      <Box>
+      <PageWrapper>
         <PageHeader
           title="Nodes"
           breadcrumbs={[
@@ -69,12 +79,12 @@ export default function Nodes() {
             Retry Connection
           </Button>
         </Paper>
-      </Box>
+      </PageWrapper>
     );
   }
 
   return (
-    <Box>
+    <PageWrapper>
       <PageHeader
         title="Nodes"
         breadcrumbs={[
@@ -96,6 +106,6 @@ export default function Nodes() {
 
       {tabValue === 0 && <NodeList nodes={nodes} />}
       {tabValue === 1 && <NodeMap nodes={nodes} />}
-    </Box>
+    </PageWrapper>
   );
 }

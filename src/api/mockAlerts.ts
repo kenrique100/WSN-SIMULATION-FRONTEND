@@ -1,4 +1,3 @@
-// mockAlerts.ts
 import type { Alert, AlertStats, PaginatedResponse } from '@/types';
 
 // Define PaginatedAlerts locally using the generic type
@@ -20,10 +19,45 @@ export const mockAlerts: Alert[] = [
     readingId: 1002,
     alertLevel: 'WARNING',
     message: 'Humidity fluctuation detected (15% change)',
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
+    timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
     acknowledged: true,
   },
-  // Add more mock alerts as needed
+  {
+    alertId: 3,
+    sensorId: 103,
+    readingId: 1003,
+    alertLevel: 'INFO',
+    message: 'Battery level dropped below 20%',
+    timestamp: new Date(Date.now() - 2 * 3600000).toISOString(), // 2 hours ago
+    acknowledged: false,
+  },
+  {
+    alertId: 4,
+    sensorId: 104,
+    readingId: 1004,
+    alertLevel: 'CRITICAL',
+    message: 'Gas sensor detected high CO2 levels',
+    timestamp: new Date(Date.now() - 3 * 3600000).toISOString(), // 3 hours ago
+    acknowledged: true,
+  },
+  {
+    alertId: 5,
+    sensorId: 105,
+    readingId: 1005,
+    alertLevel: 'WARNING',
+    message: 'Motion detected during off hours',
+    timestamp: new Date(Date.now() - 4 * 3600000).toISOString(), // 4 hours ago
+    acknowledged: false,
+  },
+  {
+    alertId: 6,
+    sensorId: 106,
+    readingId: 1006,
+    alertLevel: 'INFO',
+    message: 'Scheduled maintenance reminder',
+    timestamp: new Date(Date.now() - 5 * 3600000).toISOString(), // 5 hours ago
+    acknowledged: true,
+  },
 ];
 
 export const mockAlertStats: AlertStats = {

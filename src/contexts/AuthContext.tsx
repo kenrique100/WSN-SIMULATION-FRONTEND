@@ -1,6 +1,8 @@
+// src/contexts/AuthContext.tsx
 import { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
-import { login as apiLogin, register as apiRegister, refreshToken, logout as apiLogout } from '@/api/auth';
-import { User } from '@/types';
+import { login as apiLogin, createUser as apiCreateUser, logout as apiLogout } from '@/api/auth';
+import { User, UserCreateRequest } from '@/types';
+import { IS_DEV, DEV_USER } from '@/config';
 
 interface AuthContextType {
     user: User | null;
@@ -9,7 +11,7 @@ interface AuthContextType {
     isLoading: boolean;
     error: string | null;
     login: (username: string, password: string) => Promise<void>;
-    register: (name: string, username: string, email: string, password: string) => Promise<void>;
+    createUser: (userData: UserCreateRequest) => Promise<void>;
     logout: () => Promise<void>;
     clearError: () => void;
 }
@@ -24,14 +26,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const clearError = () => setError(null);
 
-    const authCheck = useCallback(async (controller?: AbortController) => {
+    const authCheck = useCallback(async () => {
         try {
-            const storedToken = localStorage.getItem('accessToken');
-            if (storedToken) {
-                const { user, accessToken } = await refreshToken(controller?.signal);
-                setUser(user);
-                setToken(accessToken);
-                localStorage.setItem('accessToken', accessToken);
+            if (IS_DEV) {
+                // In development, automatically set a dev user
+                setUser(DEV_USER);
+                setToken('dev-token');
+                localStorage.setItem('accessToken', 'dev-token');
+            } else {
+                const storedToken = localStorage.getItem('accessToken');
+                if (storedToken) {
+                    setToken(storedToken);
+                    // You may want to fetch user info here in production
+                }
             }
         } catch (err) {
             localStorage.removeItem('accessToken');
@@ -42,31 +49,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     useEffect(() => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-            if (isLoading) {
-                controller.abort();
-                setIsLoading(false);
-                setError('Connection timeout. Please try again.');
-            }
-        }, 10000);
-
-        authCheck(controller);
-
-        return () => {
-            controller.abort();
-            clearTimeout(timeoutId);
-        };
-    }, [authCheck, isLoading]);
+        authCheck();
+    }, [authCheck]);
 
     const handleLogin = async (username: string, password: string) => {
         setIsLoading(true);
         try {
-            const { user, accessToken } = await apiLogin({ username, password });
-            setUser(user);
-            setToken(accessToken);
-            localStorage.setItem('accessToken', accessToken);
-            setError(null);
+            if (IS_DEV) {
+                setUser(DEV_USER);
+                setToken('dev-token');
+                localStorage.setItem('accessToken', 'dev-token');
+                setError(null);
+            } else {
+                const { user, accessToken } = await apiLogin({ username, password });
+                setUser(user);
+                setToken(accessToken);
+                localStorage.setItem('accessToken', accessToken);
+                setError(null);
+            }
         } catch (err) {
             setError('Invalid credentials. Please try again.');
             throw err;
@@ -75,16 +75,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    const handleRegister = async (name: string, username: string, email: string, password: string) => {
+    const handleCreateUser = async (userData: UserCreateRequest) => {
         setIsLoading(true);
         try {
-            const { user, accessToken } = await apiRegister({ name, username, email, password });
-            setUser(user);
-            setToken(accessToken);
-            localStorage.setItem('accessToken', accessToken);
+            const token = localStorage.getItem('accessToken');
+            if (!token) {
+                throw new Error('Not authenticated');
+            }
+            await apiCreateUser(userData, token);
             setError(null);
         } catch (err) {
-            setError('Registration failed. Please try again.');
+            setError('User creation failed. Please try again.');
             throw err;
         } finally {
             setIsLoading(false);
@@ -110,7 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             isLoading,
             error,
             login: handleLogin,
-            register: handleRegister,
+            createUser: handleCreateUser,
             logout: handleLogout,
             clearError
         }}

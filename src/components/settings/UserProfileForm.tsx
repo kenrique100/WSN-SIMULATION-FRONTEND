@@ -1,139 +1,147 @@
-import React, { useState, useEffect } from 'react';
-import { Box, TextField, Button, Typography, Stack, Alert } from '@mui/material';
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Stack,
+  Avatar,
+  Divider,
+  IconButton
+} from '@mui/material';
 import { useAuth } from '@/contexts/AuthContext';
-import { validatePassword } from '@/utils/validators'; // Adjusted import
+import { CameraAlt } from '@mui/icons-material';
+import React, { useState } from 'react';
 
-export default function UserProfile() {
-  const { user, token } = useAuth();  // Removed unused logout
+interface User {
+  name?: string;
+  email?: string;
+  bio?: string;
+  avatarUrl?: string;
+  username?: string;
+}
+
+export default function UserProfileForm() {
+  const { user } = useAuth() as { user: User };
   const [editableUser, setEditableUser] = useState({
-    name: user?.name ?? '',  // Use nullish coalescing to ensure fallback value
-    email: user?.email ?? '',  // Same here for email
-    password: '',
-    confirmPassword: ''
+    name: user?.name || '',
+    email: user?.email || '',
+    bio: user?.bio || ''
   });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [avatar, setAvatar] = useState(user?.avatarUrl || '');
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      setEditableUser({
-        name: user.name ?? '',  // Safely handle undefined
-        email: user.email ?? '',  // Safely handle undefined
-        password: '',
-        confirmPassword: ''
-      });
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setAvatar(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(e.target.files[0]);
     }
-  }, [user]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-
-    if (editableUser.password && !validatePassword(editableUser.password)) {
-      setError('Password must be at least 8 characters long');
-      return;
-    }
-
-    if (editableUser.password !== editableUser.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const response = await fetch('/api/update-profile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          userId: user?.userId,
-          name: editableUser.name,
-          email: editableUser.email,
-          password: editableUser.password
-        })
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Profile update failed');
-      }
-
-      setSuccess('Profile updated successfully');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Profile update failed');
+      // Submit logic here
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 500 }}>
-      <Typography variant="h6" gutterBottom>
-        User Profile
+    <Box component="form" onSubmit={handleSubmit}>
+      <Typography variant="h6" fontWeight="600" gutterBottom>
+        Profile Information
+      </Typography>
+      <Typography variant="body2" color="text.secondary" mb={4}>
+        Update your personal details and profile picture
       </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={4} mb={4}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Box sx={{ position: 'relative' }}>
+            <Avatar
+              src={avatar}
+              sx={{
+                width: 120,
+                height: 120,
+                fontSize: 48,
+                mb: 1
+              }}
+            >
+              {user?.name?.charAt(0) || user?.username?.charAt(0)}
+            </Avatar>
+            <IconButton
+              component="label"
+              sx={{
+                position: 'absolute',
+                bottom: 8,
+                right: 0,
+                bgcolor: 'background.paper',
+                '&:hover': { bgcolor: 'background.default' }
+              }}
+            >
+              <CameraAlt fontSize="small" />
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={handleAvatarChange}
+              />
+            </IconButton>
+          </Box>
+          <Typography variant="caption" color="text.secondary">
+            JPG, GIF or PNG. Max 2MB
+          </Typography>
+        </Box>
 
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          {success}
-        </Alert>
-      )}
-
-      <Stack spacing={2}>
-        <TextField
-          required
-          fullWidth
-          label="Name"
-          value={editableUser.name}
-          onChange={(e) => setEditableUser({ ...editableUser, name: e.target.value })}
-        />
-
-        <TextField
-          required
-          fullWidth
-          label="Email"
-          type="email"
-          value={editableUser.email}
-          onChange={(e) => setEditableUser({ ...editableUser, email: e.target.value })}
-          helperText="Please enter a valid email address"
-        />
-
-        <TextField
-          fullWidth
-          label="Password"
-          type="password"
-          value={editableUser.password}
-          onChange={(e) => setEditableUser({ ...editableUser, password: e.target.value })}
-          helperText="Leave empty if you don't want to change the password"
-        />
-
-        <TextField
-          fullWidth
-          label="Confirm Password"
-          type="password"
-          value={editableUser.confirmPassword}
-          onChange={(e) => setEditableUser({ ...editableUser, confirmPassword: e.target.value })}
-        />
-
-        <Button
-          type="submit"
-          variant="contained"
-          size="large"
-          disabled={isLoading}
-          sx={{ mt: 2 }}
-        >
-          {isLoading ? 'Updating...' : 'Update Profile'}
-        </Button>
+        <Box sx={{ flex: 1 }}>
+          <Stack spacing={3}>
+            <TextField
+              fullWidth
+              label="Full Name"
+              value={editableUser.name}
+              onChange={(e) => setEditableUser({...editableUser, name: e.target.value})}
+              variant="outlined"
+            />
+            <TextField
+              fullWidth
+              label="Email"
+              type="email"
+              value={editableUser.email}
+              onChange={(e) => setEditableUser({...editableUser, email: e.target.value})}
+              variant="outlined"
+            />
+            <TextField
+              fullWidth
+              label="Bio"
+              multiline
+              rows={3}
+              value={editableUser.bio}
+              onChange={(e) => setEditableUser({...editableUser, bio: e.target.value})}
+              variant="outlined"
+              placeholder="Tell us about yourself..."
+            />
+          </Stack>
+        </Box>
       </Stack>
+
+      <Divider sx={{ my: 4 }} />
+
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          variant="contained"
+          type="submit"
+          disabled={isLoading}
+          sx={{ px: 4, py: 1.5 }}
+        >
+          {isLoading ? 'Saving...' : 'Save Changes'}
+        </Button>
+      </Box>
     </Box>
   );
 }

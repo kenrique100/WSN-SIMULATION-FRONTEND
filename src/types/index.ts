@@ -1,13 +1,21 @@
 // types.ts
 import { SelectChangeEvent } from '@mui/material';
 
+// src/types.ts
 export interface User {
     userId: number;
     username: string;
     email: string;
+    name: string;
     role: string;
+    avatarUrl?: string;
     createdAt: string;
-    name?: string;
+    enabled: boolean;
+}
+export enum Role {
+    ADMIN = 'ADMIN',
+    OPERATOR = 'OPERATOR',
+    VIEWER = 'VIEWER'
 }
 
 export interface AuthResponse {
@@ -16,15 +24,16 @@ export interface AuthResponse {
     user: User;
 }
 
+export interface UserCreateRequest {
+    username: string;
+    email: string;
+    password: string;
+    role: Role;
+}
+
 export interface LoginRequest {
     username: string;
     password: string;
-}
-
-export interface RegisterRequest extends LoginRequest {
-    email: string;
-    name: string;
-    confirmPassword: string;
 }
 
 export interface SensorNode {
@@ -49,8 +58,19 @@ export interface NodeSensor {
 export interface Reading {
     readingId: number;
     sensorId: number;
+    nodeId?: number;
     value: number;
     timestamp: string;
+}
+
+export interface ReadingStats {
+    average: number;
+    min: number;
+    max: number;
+    count: number;
+    firstReading: string;
+    lastReading: string;
+    trend: 'up' | 'down' | 'stable';
 }
 
 export interface Alert {
@@ -97,16 +117,12 @@ export interface ReadingFilter {
     endTime?: string;
     limit?: number;
     hours?: number;
+    page?: number;
+    size?: number;
 }
 
 export interface LoginData {
     username: string;
-    password: string;
-}
-
-export interface RegisterData {
-    username: string;
-    email: string;
     password: string;
 }
 
@@ -130,20 +146,7 @@ export interface AlertThresholdUpdate {
     notificationEnabled?: boolean;
     updatedBy?: number;
 }
-export interface ThresholdFormValues {
-    sensorType: string;
-    minValue?: number;
-    maxValue?: number;
-    notificationEnabled: boolean;
-    level: string;
-}
 
-export interface ApiError {
-    message: string;
-    statusCode: number;
-    timestamp?: string;
-    path?: string;
-}
 
 export interface FormButtonsProps {
     onCancel: () => void;

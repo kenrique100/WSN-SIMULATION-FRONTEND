@@ -6,14 +6,17 @@ import {
   ListItem,
   ListItemText,
   Chip,
-  Typography
+  Typography,
+  Box,
+  IconButton,
 } from '@mui/material';
-import { Alert } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { getRecentAlerts } from '@/api/alerts';
 import { useWebSocket } from '@/contexts/WebSocketContext';
-
-interface RecentAlertsProps {
-  mockAlerts?: Alert[];
-}
+import { mockAlerts } from '@/api/mockAlerts';
+import { useEffect } from 'react';
+import { Alert } from '@/types';
 
 const getAlertColor = (level: 'INFO' | 'WARNING' | 'CRITICAL') => {
   switch (level) {
@@ -26,33 +29,57 @@ const getAlertColor = (level: 'INFO' | 'WARNING' | 'CRITICAL') => {
   }
 };
 
-export default function RecentAlerts({ mockAlerts }: RecentAlertsProps) {
-  const { alerts: wsAlerts, isConnected } = useWebSocket();
-  const displayAlerts =
-    mockAlerts || (Array.isArray(wsAlerts) ? wsAlerts.slice(0, 5) : []);
+export default function RecentAlerts({ mockAlerts: overrideMock }: { mockAlerts?: Alert[] }) {
+  const {
+    data: alerts,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['recentAlerts'],
+    queryFn: () => getRecentAlerts(5),
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+
+  const { alerts: wsAlerts } = useWebSocket();
+
+  useEffect(() => {
+    if (wsAlerts.length > 0) {
+      void refetch();
+    }
+  }, [wsAlerts, refetch]);
+
+  const fallbackAlerts = overrideMock ?? mockAlerts;
+  const displayAlerts: Alert[] = isError ? fallbackAlerts : alerts ?? [];
 
   return (
-    <div>
-      <MuiAlert severity="info">
-        <AlertTitle>
-          Recent Alerts
-          {!isConnected && mockAlerts && (
-            <Chip label="Demo" size="small" sx={{ ml: 1 }} />
-          )}
-        </AlertTitle>
+    <Box>
+      <MuiAlert
+        severity={isError ? 'warning' : 'info'}
+        sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
+      >
+        <Box width="100%" display="flex" justifyContent="space-between" alignItems="center">
+          <AlertTitle>
+            Recent Alerts
+            {isError && <Chip label="Demo" size="small" sx={{ ml: 1 }} />}
+          </AlertTitle>
+          <IconButton size="small" onClick={() => void refetch()}>
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        </Box>
 
         {displayAlerts.length === 0 ? (
           <Typography>No recent alerts</Typography>
         ) : (
           <List dense>
             {displayAlerts.map((alert) => (
-              <ListItem key={alert.alertId || alert.timestamp} sx={{ py: 0.5 }}>
+              <ListItem key={alert.alertId ?? alert.timestamp} sx={{ py: 0.5 }}>
                 <ListItemText
                   primary={alert.message || 'Alert'}
                   secondary={new Date(alert.timestamp).toLocaleString()}
                   secondaryTypographyProps={{
                     color: alert.acknowledged ? 'text.secondary' : 'error.main',
-                    variant: 'caption'
+                    variant: 'caption',
                   }}
                 />
                 <Chip
@@ -66,6 +93,6 @@ export default function RecentAlerts({ mockAlerts }: RecentAlertsProps) {
           </List>
         )}
       </MuiAlert>
-    </div>
+    </Box>
   );
 }

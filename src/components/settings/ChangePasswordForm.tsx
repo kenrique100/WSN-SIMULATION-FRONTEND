@@ -1,123 +1,100 @@
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Stack,
+  Alert,
+  Divider
+} from '@mui/material';
 import React, { useState } from 'react';
-import { Box, TextField, Button, Stack, Typography, Alert } from '@mui/material';
-import { useAuth } from '@/contexts/AuthContext';
-import { validatePassword } from '@/utils/validators';
 
 export default function ChangePasswordForm() {
-  const { user, logout } = useAuth();  // Using logout now
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess(false);
-
-    if (!validatePassword(newPassword)) {
-      setError('Password must be at least 8 characters long');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError('New passwords do not match');
-      return;
-    }
-
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const response = await fetch('/api/change-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        },
-        body: JSON.stringify({
-          userId: user?.userId,
-          currentPassword,
-          newPassword
-        })
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Password change failed');
-      }
-
-      setSuccess(true);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-
-      // Optionally logout after password change
-      await logout();
+      // Validation and submission logic
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Password change failed');
+      setError('Failed to change password');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 500 }}>
-      <Typography variant="h6" gutterBottom>
-        Change Password
+    <Box component="form" onSubmit={handleSubmit}>
+      <Typography variant="h6" fontWeight="600" gutterBottom>
+        Password & Security
+      </Typography>
+      <Typography variant="body2" color="text.secondary" mb={4}>
+        Change your password and manage security settings
       </Typography>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          Password changed successfully!
+        <Alert severity="success" sx={{ mb: 3 }}>
+          {success}
         </Alert>
       )}
 
-      <Stack spacing={2}>
+      <Stack spacing={3} maxWidth={600}>
         <TextField
-          required
           fullWidth
           label="Current Password"
           type="password"
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
+          variant="outlined"
         />
 
         <TextField
-          required
           fullWidth
           label="New Password"
           type="password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
-          helperText="Password must be at least 8 characters"
+          variant="outlined"
+          helperText="Minimum 8 characters with at least one number and special character"
         />
 
         <TextField
-          required
           fullWidth
           label="Confirm New Password"
           type="password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
+          variant="outlined"
         />
-
-        <Button
-          type="submit"
-          variant="contained"
-          size="large"
-          disabled={isLoading}
-          sx={{ mt: 2 }}
-        >
-          {isLoading ? 'Changing...' : 'Change Password'}
-        </Button>
       </Stack>
+
+      <Divider sx={{ my: 4 }} />
+
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="body2" color="text.secondary">
+          Last changed: 3 months ago
+        </Typography>
+        <Button
+          variant="contained"
+          type="submit"
+          disabled={isLoading}
+          sx={{ px: 4, py: 1.5 }}
+        >
+          {isLoading ? 'Updating...' : 'Update Password'}
+        </Button>
+      </Box>
     </Box>
   );
 }

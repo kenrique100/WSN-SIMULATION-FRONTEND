@@ -5,6 +5,7 @@ interface AppState {
     toggleSidebar: () => void;
     openSidebar: () => void;
     closeSidebar: () => void;
+    setSidebarOpen: (open: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -12,4 +13,5 @@ export const useAppStore = create<AppState>((set) => ({
     toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
     openSidebar: () => set({ sidebarOpen: true }),
     closeSidebar: () => set({ sidebarOpen: false }),
+    setSidebarOpen: (open) => set({ sidebarOpen: open }),
 }));
