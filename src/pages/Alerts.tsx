@@ -1,10 +1,10 @@
-import { Box } from '@mui/material';
-import AlertList from '../components/alerts/AlertList';
-import PageHeader from '../components/common/PageHeader';
+import AlertList from '@/components/alerts/AlertList';
+import PageHeader from '@/components/common/PageHeader';
+import PageWrapper from '@/components/layout/PageWrapper';
 
 export default function Alerts() {
   return (
-    <Box>
+    <PageWrapper>
       <PageHeader
         title="Alerts"
         breadcrumbs={[
@@ -13,6 +13,6 @@ export default function Alerts() {
         ]}
       />
       <AlertList />
-    </Box>
+    </PageWrapper>
   );
 }

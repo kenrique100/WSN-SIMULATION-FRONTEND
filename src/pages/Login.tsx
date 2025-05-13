@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Box, Button, TextField, Typography, Link, Paper } from '@mui/material';
+import { Box, Button, TextField, Typography, Paper } from '@mui/material';
 import { LoginRequest } from '@/types';
 
 export default function Login() {
@@ -16,9 +16,8 @@ export default function Login() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            // If login expects username and password as separate arguments
-            await login(formData.username, formData.password); // Adjusted to pass separate arguments
-            navigate('/dashboard');
+            await login(formData.username, formData.password);
+            navigate('/');
         } catch (err) {
             setError('Invalid username or password');
         }
@@ -74,12 +73,6 @@ export default function Login() {
                       Login
                   </Button>
               </form>
-              <Typography variant="body2" align="center" sx={{ mt: 2 }}>
-                  Don't have an account?{' '}
-                  <Link href="/register" underline="hover">
-                      Register
-                  </Link>
-              </Typography>
           </Paper>
       </Box>
     );

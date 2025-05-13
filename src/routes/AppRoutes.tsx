@@ -14,8 +14,20 @@ import Topology from '@/pages/Topology';
 import UserManagementPage from '@/pages/UserManagementPage';
 import React from 'react';
 
-// Placeholder for the development-only PrivateRoute (no import provided)
-const PrivateRoute = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+// Development mode route wrapper
+const DevRoute = ({ children }: { children: React.ReactNode }) => {
+  return <>{children}</>;
+};
+
+// Production mode protected route
+const ProdProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  // Implement your actual protected route logic here
+  return <>{children}</>;
+};
+
+const ProtectedRoute = import.meta.env.MODE === 'development'
+  ? DevRoute
+  : ProdProtectedRoute;
 
 export default function AppRoutes() {
   return (
@@ -67,14 +79,14 @@ export default function AppRoutes() {
         */}
 
         {/* Freely accessible development routes */}
-        <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-        <Route path="/nodes" element={<PrivateRoute><Nodes /></PrivateRoute>} />
-        <Route path="/readings" element={<PrivateRoute><Readings /></PrivateRoute>} />
-        <Route path="/alerts" element={<PrivateRoute><Alerts /></PrivateRoute>} />
-        <Route path="/users" element={<PrivateRoute><UserManagementPage /></PrivateRoute>} />
-        <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-        <Route path="/thresholds" element={<PrivateRoute><Thresholds /></PrivateRoute>} />
-        <Route path="/topology" element={<PrivateRoute><Topology /></PrivateRoute>} />
+        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/nodes" element={<ProtectedRoute><Nodes /></ProtectedRoute>} />
+        <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
+        <Route path="/readings" element={<ProtectedRoute><Readings /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/thresholds" element={<ProtectedRoute><Thresholds /></ProtectedRoute>} />
+        <Route path="/topology" element={<ProtectedRoute><Topology /></ProtectedRoute>} />
+        <Route path="/users" element={<ProtectedRoute><UserManagementPage /></ProtectedRoute>} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

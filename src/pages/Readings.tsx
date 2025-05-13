@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import ReadingChart from '@/components/readings/ReadingChart';
 import ReadingStats from '@/components/readings/ReadingStats';
 import PageHeader from '@/components/common/PageHeader';
+import PageWrapper from '@/components/layout/PageWrapper';
 
 export default function Readings() {
   const { sensorId, nodeId } = useParams();
@@ -14,7 +15,7 @@ export default function Readings() {
   };
 
   return (
-    <Box>
+    <PageWrapper>
       <PageHeader
         title={sensorId ? 'Sensor Readings' : 'Node Readings'}
         breadcrumbs={[
@@ -41,6 +42,6 @@ export default function Readings() {
           nodeId={nodeId ? parseInt(nodeId) : undefined}
         />
       )}
-    </Box>
+    </PageWrapper>
   );
 }

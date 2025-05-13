@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { LoginData, RegisterData, AuthResponse } from '@/types';
+import { LoginData, AuthResponse, UserCreateRequest } from '@/types';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -8,18 +8,12 @@ export const login = async (data: LoginData): Promise<AuthResponse> => {
     return response.data;
 };
 
-export const register = async (data: {
-    name: string;
-    username: string;
-    email: string;
-    password: string
-}): Promise<AuthResponse> => {
-    const response = await axios.post(`${API_URL}/auth/register`, data);
-    return response.data;
-};
-
-export const refreshToken = async (signal: AbortSignal | undefined): Promise<AuthResponse> => {
-    const response = await axios.post(`${API_URL}/auth/refresh`);
+export const createUser = async (data: UserCreateRequest, token: string): Promise<AuthResponse> => {
+    const response = await axios.post(`${API_URL}/auth/create-user`, data, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
     return response.data;
 };
 

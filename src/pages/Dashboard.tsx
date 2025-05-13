@@ -1,5 +1,12 @@
-// dashboard/index.tsx
-import { Grid, Card, CardContent, Box, Typography, Alert as MuiAlert } from '@mui/material';
+// src/pages/dashboard/index.tsx
+import {
+    Grid,
+    Card,
+    CardContent,
+    Box,
+    Typography,
+    Alert as MuiAlert
+} from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { getNodes, getNodeStatusStats } from '@/api/nodes';
 import { getAlertStats } from '@/api/alerts';
@@ -9,7 +16,14 @@ import RecentAlerts from '@/components/dashboard/RecentAlerts';
 import NodeMap from '@/components/nodes/NodeMap';
 import PageHeader from '@/components/common/PageHeader';
 import Loading from '@/components/common/Loading';
-import { AlertStats, NodeStats, PaginatedResponse, SensorNode, Alert as AlertType } from '@/types';
+import PageWrapper from '@/components/layout/PageWrapper';
+import {
+    AlertStats,
+    NodeStats,
+    PaginatedResponse,
+    SensorNode,
+    Alert as AlertType
+} from '@/types';
 
 // Mock data for fallback UI with Cameroon coordinates
 const mockNodes: PaginatedResponse<SensorNode> = {
@@ -18,7 +32,7 @@ const mockNodes: PaginatedResponse<SensorNode> = {
             nodeId: 1,
             name: 'Yaoundé Node',
             location: 'Central Region',
-            latitude: 3.8480,
+            latitude: 3.848,
             longitude: 11.5021,
             status: 'active',
             lastHeartbeat: new Date().toISOString()
@@ -37,7 +51,7 @@ const mockNodes: PaginatedResponse<SensorNode> = {
             name: 'Bamenda Node',
             location: 'Northwest Region',
             latitude: 5.9597,
-            longitude: 10.1460,
+            longitude: 10.146,
             status: 'active',
             lastHeartbeat: new Date().toISOString()
         }
@@ -63,7 +77,6 @@ const mockAlertStats: AlertStats = {
     acknowledged: 1
 };
 
-// Mock recent alerts data
 const mockRecentAlerts: AlertType[] = [
     {
         alertId: 1,
@@ -95,7 +108,6 @@ const mockRecentAlerts: AlertType[] = [
 ];
 
 export default function Dashboard() {
-    // Fetch nodes data
     const {
         data: nodesData,
         isLoading: nodesLoading,
@@ -107,7 +119,6 @@ export default function Dashboard() {
         refetchOnWindowFocus: false
     });
 
-    // Fetch node stats
     const {
         data: nodeStats,
         isLoading: statsLoading,
@@ -119,7 +130,6 @@ export default function Dashboard() {
         refetchOnWindowFocus: false
     });
 
-    // Fetch alert stats
     const {
         data: alertStats,
         isLoading: alertStatsLoading,
@@ -131,72 +141,83 @@ export default function Dashboard() {
         refetchOnWindowFocus: false
     });
 
-    // Determine if we should use mock data
     const useMockData = nodesError || statsError || alertStatsError;
     const isLoading = nodesLoading || statsLoading || alertStatsLoading;
 
     if (isLoading) return <Loading />;
 
     return (
-      <Box sx={{ p: 3 }}>
-          <PageHeader
-            title="WSN Monitoring Dashboard"
-            breadcrumbs={[
-                { label: 'Dashboard', href: '/' }
-            ]}
-          />
+      <PageWrapper>
+          <Box sx={{ p: 3 }}>
+              <PageHeader
+                title="WSN Monitoring Dashboard"
+                breadcrumbs={[{ label: 'Dashboard', href: '/' }]}
+              />
 
-          {useMockData && (
-            <MuiAlert severity="warning" sx={{ mb: 3 }}>
-                Could not connect to server. Displaying demo data.
-            </MuiAlert>
-          )}
+              {useMockData && (
+                <MuiAlert severity="warning" sx={{ mb: 3 }}>
+                    Could not connect to server. Displaying demo data.
+                </MuiAlert>
+              )}
 
-          <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                  <Card>
-                      <CardContent>
-                          <Typography variant="h6" gutterBottom>
-                              Node Status
-                          </Typography>
-                          <NodeStatusChart stats={useMockData ? mockNodeStats : (nodeStats || undefined)} />
-                      </CardContent>
-                  </Card>
+              <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                      <Card>
+                          <CardContent>
+                              <Typography variant="h6" gutterBottom>
+                                  Node Status
+                              </Typography>
+                              <NodeStatusChart
+                                stats={useMockData ? mockNodeStats : nodeStats || undefined}
+                              />
+                          </CardContent>
+                      </Card>
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                      <Card>
+                          <CardContent>
+                              <Typography variant="h6" gutterBottom>
+                                  Alert Status
+                              </Typography>
+                              <AlertStatusChart
+                                stats={useMockData ? mockAlertStats : alertStats || undefined}
+                              />
+                          </CardContent>
+                      </Card>
+                  </Grid>
+
+                  <Grid item xs={12} md={8}>
+                      <Card>
+                          <CardContent>
+                              <Typography variant="h6" gutterBottom>
+                                  Network Map
+                              </Typography>
+                              <NodeMap
+                                nodes={
+                                    useMockData
+                                      ? mockNodes.content
+                                      : nodesData?.content || []
+                                }
+                              />
+                          </CardContent>
+                      </Card>
+                  </Grid>
+
+                  <Grid item xs={12} md={4}>
+                      <Card>
+                          <CardContent>
+                              <Typography variant="h6" gutterBottom>
+                                  Recent Alerts
+                              </Typography>
+                              <RecentAlerts
+                                mockAlerts={useMockData ? mockRecentAlerts : undefined}
+                              />
+                          </CardContent>
+                      </Card>
+                  </Grid>
               </Grid>
-
-              <Grid item xs={12} md={6}>
-                  <Card>
-                      <CardContent>
-                          <Typography variant="h6" gutterBottom>
-                              Alert Status
-                          </Typography>
-                          <AlertStatusChart stats={useMockData ? mockAlertStats : (alertStats || undefined)} />
-                      </CardContent>
-                  </Card>
-              </Grid>
-
-              <Grid item xs={12} md={8}>
-                  <Card>
-                      <CardContent>
-                          <Typography variant="h6" gutterBottom>
-                              Network Map
-                          </Typography>
-                          <NodeMap nodes={useMockData ? mockNodes.content : (nodesData?.content || [])} />
-                      </CardContent>
-                  </Card>
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                  <Card>
-                      <CardContent>
-                          <Typography variant="h6" gutterBottom>
-                              Recent Alerts
-                          </Typography>
-                          <RecentAlerts mockAlerts={useMockData ? mockRecentAlerts : undefined} />
-                      </CardContent>
-                  </Card>
-              </Grid>
-          </Grid>
-      </Box>
+          </Box>
+      </PageWrapper>
     );
 }

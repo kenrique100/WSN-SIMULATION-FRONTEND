@@ -1,10 +1,11 @@
 import { Box } from '@mui/material';
 import ThresholdList from '../components/thresholds/ThresholdList';
 import PageHeader from '../components/common/PageHeader';
+import PageWrapper from '@/components/layout/PageWrapper';
 
 export default function Thresholds() {
     return (
-        <Box>
+          <PageWrapper>
             <PageHeader
                 title="Thresholds"
                 breadcrumbs={[
@@ -13,6 +14,6 @@ export default function Thresholds() {
                 ]}
             />
             <ThresholdList />
-        </Box>
+          </PageWrapper>
     );
 }
