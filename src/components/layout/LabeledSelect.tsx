@@ -1,28 +1,51 @@
-import {
-  FormControl, InputLabel, Select, MenuItem, SelectChangeEvent, FormHelperText
-} from '@mui/material';
+import React from 'react';
+import { FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material';
+
+interface LabeledSelectOption {
+  value: string;
+  label: string;
+}
 
 interface LabeledSelectProps {
   label: string;
-  value: string;
   name: string;
-  options: readonly { value: string; label: string }[];
-  onChange: (e: SelectChangeEvent<string>) => void;
+  value: string;
+  options: readonly LabeledSelectOption[];
+  onChange: (event: SelectChangeEvent) => void;
+  hasError?: boolean;
   helperText?: string;
 }
 
-export default function LabeledSelect({
-                                        label, value, name, options, onChange, helperText
-                                      }: LabeledSelectProps) {
+const LabeledSelect: React.FC<LabeledSelectProps> = ({
+                                                       label,
+                                                       name,
+                                                       value,
+                                                       options,
+                                                       onChange,
+                                                       hasError = false,
+                                                       helperText
+                                                     }) => {
   return (
-    <FormControl fullWidth>
-      <InputLabel>{label}</InputLabel>
-      <Select name={name} value={value} label={label} onChange={onChange}>
-        {options.map(option => (
-          <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+    <FormControl fullWidth error={hasError}>
+      <InputLabel id={`${name}-label`}>{label}</InputLabel>
+      <Select
+        labelId={`${name}-label`}
+        id={name}
+        name={name}
+        value={value}
+        onChange={onChange}
+        label={label}
+      >
+        {options.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
         ))}
       </Select>
       {helperText && <FormHelperText>{helperText}</FormHelperText>}
     </FormControl>
   );
-}
+};
+
+export default LabeledSelect;

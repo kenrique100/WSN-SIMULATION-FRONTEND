@@ -113,15 +113,36 @@ export interface RegisterData {
 export interface AlertThreshold {
     id: number;
     sensorType: string;
+    sensorTypeId?: number;
     minValue?: number;
     maxValue?: number;
+    warningLevel?: number;
+    dangerLevel?: number;
     notificationEnabled: boolean;
+    updatedBy?: number;
+    updatedAt?: string;
 }
-
 export interface AlertThresholdUpdate {
     minValue?: number;
     maxValue?: number;
+    warningLevel?: number;
+    dangerLevel?: number;
+    notificationEnabled?: boolean;
+    updatedBy?: number;
+}
+export interface ThresholdFormValues {
+    sensorType: string;
+    minValue?: number;
+    maxValue?: number;
     notificationEnabled: boolean;
+    level: string;
+}
+
+export interface ApiError {
+    message: string;
+    statusCode: number;
+    timestamp?: string;
+    path?: string;
 }
 
 export interface FormButtonsProps {

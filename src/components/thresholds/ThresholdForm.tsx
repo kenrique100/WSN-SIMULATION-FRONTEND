@@ -1,63 +1,142 @@
-import React, { useState } from 'react';
-import { Box, Stack, TextField } from '@mui/material';
+import { Box, Checkbox, FormControlLabel, Stack, TextField } from '@mui/material';
 import { ALERT_LEVELS, SENSOR_TYPES } from '@/types/constants';
-import { SelectChangeEvent } from '@mui/material';
 import LabeledSelect from '@/components/layout/LabeledSelect';
 import FormButtons from '@/components/layout/FormButtons';
-
-interface ThresholdFormProps {
-  onSubmit: (data: { sensorType: string; threshold: string; level: string }) => void;
-  onCancel: () => void;
-  initialData?: { sensorType: string; threshold: string; level: string }; // Optional
+import { useForm, Controller, SubmitHandler } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import type { SelectChangeEvent } from '@mui/material';
+interface ThresholdFormValues {
+  sensorType: string;
+  minValue?: number;
+  maxValue?: number;
+  notificationEnabled: boolean;
+  level: string;
 }
 
-export default function ThresholdForm({ onSubmit, onCancel, initialData }: ThresholdFormProps) {
-  const [formData, setFormData] = useState(initialData ?? {
-    sensorType: '',
-    threshold: '',
-    level: 'warning',
+const schema: yup.ObjectSchema<ThresholdFormValues> = yup.object({
+  sensorType: yup.string().required('Sensor type is required'),
+  minValue: yup.number().typeError('Must be a number').optional(),
+  maxValue: yup.number().typeError('Must be a number').optional().when(
+    ['minValue'],
+    ([minValue], schema) => {
+      return minValue !== undefined
+        ? schema.min(minValue, 'Max must be greater than min')
+        : schema;
+    }
+  ),
+  level: yup.string().required('Alert level is required'),
+  notificationEnabled: yup.boolean().required(),
+});
+
+interface ThresholdFormProps {
+  onSubmit: SubmitHandler<ThresholdFormValues>;
+  onCancel: () => void;
+  initialData?: Partial<ThresholdFormValues>;
+}
+
+function ThresholdForm({ onSubmit, onCancel, initialData }: ThresholdFormProps) {
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ThresholdFormValues>({
+    defaultValues: {
+      sensorType: '',
+      minValue: undefined,
+      maxValue: undefined,
+      level: 'WARNING',
+      notificationEnabled: true,
+      ...initialData,
+    },
+    resolver: yupResolver(schema),
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSelectChange = (e: SelectChangeEvent<string>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-      <Stack spacing={2}>
-        <LabeledSelect
-          label="Sensor Type"
+    <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 2 }}>
+      <Stack spacing={3}>
+        <Controller
           name="sensorType"
-          value={formData.sensorType}
-          options={SENSOR_TYPES.map(s => ({ value: s.name, label: s.name }))}
-          onChange={handleSelectChange}
+          control={control}
+          render={({ field }) => (
+            <LabeledSelect
+              label="Sensor Type"
+              name={field.name}
+              value={field.value}
+              options={SENSOR_TYPES.map((s) => ({ value: s.name, label: s.name }))}
+              onChange={(e: SelectChangeEvent) => field.onChange(e.target.value)}
+              hasError={!!errors.sensorType}
+              helperText={errors.sensorType?.message}
+            />
+          )}
         />
-        <TextField
-          label="Threshold"
-          name="threshold"
-          type="number"
-          value={formData.threshold}
-          onChange={handleChange}
-          fullWidth
+
+        <Controller
+          name="minValue"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              {...field}
+              label="Min Value"
+              type="number"
+              fullWidth
+              value={field.value ?? ''}
+              onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+              error={!!errors.minValue}
+              helperText={errors.minValue?.message}
+            />
+          )}
         />
-        <LabeledSelect
-          label="Alert Level"
+
+        <Controller
+          name="maxValue"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              {...field}
+              label="Max Value"
+              type="number"
+              fullWidth
+              value={field.value ?? ''}
+              onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+              error={!!errors.maxValue}
+              helperText={errors.maxValue?.message}
+            />
+          )}
+        />
+
+        <Controller
           name="level"
-          value={formData.level}
-          options={ALERT_LEVELS}
-          onChange={handleSelectChange}
+          control={control}
+          render={({ field }) => (
+            <LabeledSelect
+              label="Alert Level"
+              name={field.name}
+              value={field.value}
+              options={ALERT_LEVELS}
+              onChange={(e: SelectChangeEvent) => field.onChange(e.target.value)}
+              hasError={!!errors.level}
+              helperText={errors.level?.message}
+            />
+          )}
         />
+
+        {/* Add checkbox if needed */}
+         <Controller
+          name="notificationEnabled"
+          control={control}
+          render={({ field }) => (
+            <FormControlLabel
+              control={<Checkbox checked={field.value} onChange={(e) => field.onChange(e.target.checked)} />}
+              label="Enable Notifications"
+            />
+          )}
+        />
+
         <FormButtons onCancel={onCancel} isEdit={!!initialData} />
       </Stack>
     </Box>
   );
 }
+
+export default ThresholdForm;

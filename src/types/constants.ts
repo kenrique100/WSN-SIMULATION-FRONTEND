@@ -18,6 +18,11 @@ export const ALERT_TYPES = [
     { value: 'status', label: 'Status' },
     { value: 'battery', label: 'Battery' },
 ] as const;
+export const ALERT_LEVELS = [
+    { value: 'INFO', label: 'Info' },
+    { value: 'WARNING', label: 'Warning' },
+    { value: 'CRITICAL', label: 'Critical' }
+] as const;
 
 export type SensorType = typeof SENSOR_TYPES[number];
 export type NodeStatus = typeof NODE_STATUSES[number]['value'];
