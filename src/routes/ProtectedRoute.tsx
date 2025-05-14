@@ -1,4 +1,3 @@
-/*
 import { Navigate, useLocation } from 'react-router-dom';
 import Loading from '@/components/common/Loading';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,4 +36,4 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
     }
 
     return <>{children}</>;
-}*/
+}
