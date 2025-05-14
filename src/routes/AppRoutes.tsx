@@ -32,7 +32,7 @@ const ProtectedRoute = ({ children, roles }: ProtectedWrapperProps) => {
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      {/*<Route path="/login" element={<Login />} />*/}
 
       <Route element={<Layout />}>
         <Route path="/" element={
