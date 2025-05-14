@@ -1,5 +1,4 @@
 import { Routes, Route } from 'react-router-dom';
-import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Nodes from '@/pages/Nodes';
 import Alerts from '@/pages/Alerts';
@@ -32,7 +31,7 @@ const ProtectedRoute = ({ children, roles }: ProtectedWrapperProps) => {
 export default function AppRoutes() {
   return (
     <Routes>
-      {/*<Route path="/login" element={<Login />} />*/}
+      {/*<Route path="/login" element={<Login />} />
 
       <Route element={<Layout />}>
         <Route path="/" element={
@@ -75,6 +74,17 @@ export default function AppRoutes() {
             <UserManagementPage />
           </ProtectedRoute>
         } />
+      </Route>*/}
+
+      <Route element={<Layout />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/nodes" element={<Nodes />} />
+        <Route path="/alerts" element={<Alerts />} />
+        <Route path="/readings/:sensorId?" element={<Readings />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/thresholds" element={<Thresholds />} />
+        <Route path="/topology" element={<Topology />} />
+        <Route path="/users" element={<UserManagementPage />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

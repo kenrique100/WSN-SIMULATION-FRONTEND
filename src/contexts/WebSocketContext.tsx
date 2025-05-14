@@ -1,6 +1,5 @@
 import { createContext, useContext, ReactNode, useEffect, useState, useCallback } from 'react';
 import { Alert } from '@/types';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface WebSocketContextType {
     alerts: Alert[];
@@ -20,19 +19,16 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     const [isConnected, setIsConnected] = useState(false);
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [readings, setReadings] = useState<any[]>([]);
-    const { user, token } = useAuth();
 
     const connectWebSocket = useCallback(() => {
-        if (!user || !token) return;
-
-        const wsUrl = `${import.meta.env.VITE_WS_URL}?token=${token}`;
+        const wsUrl = import.meta.env.VITE_WS_URL;
         const ws = new WebSocket(wsUrl);
 
         const handleMessage = (event: MessageEvent) => {
             try {
                 const data = JSON.parse(event.data);
                 if (data.type === 'alert') {
-                    setAlerts(prev => [data.data, ...prev].slice(0, 50)); // Keep only latest 50 alerts
+                    setAlerts(prev => [data.data, ...prev].slice(0, 50));
                 } else if (data.type === 'reading') {
                     setReadings(prev => [data.data, ...prev].slice(0, 50));
                 }
@@ -53,7 +49,6 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
             console.log('WebSocket disconnected');
             setIsConnected(false);
             setSocket(null);
-            // Attempt to reconnect after 5 seconds
             setTimeout(connectWebSocket, 5000);
         });
 
@@ -62,7 +57,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
         });
 
         return ws;
-    }, [user, token]);
+    }, []);
 
     useEffect(() => {
         const ws = connectWebSocket();

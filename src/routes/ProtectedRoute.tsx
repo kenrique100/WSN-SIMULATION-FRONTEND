@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
-    const { user, isLoading, error } = useAuth();
+    /*const { user, isLoading, error } = useAuth();
     const location = useLocation();
     const [initialLoad, setInitialLoad] = useState(true);
 
@@ -33,7 +33,7 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
 
     if (roles && !roles.includes(user.role)) {
         return <Navigate to="/" replace />;
-    }
+    }*/
 
     return <>{children}</>;
 }

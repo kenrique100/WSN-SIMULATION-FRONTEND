@@ -24,7 +24,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <CssBaseline />
-        <AuthProvider>
+        {/*<AuthProvider>*/}
           <NotificationProvider>
             <WebSocketProvider>
               <ErrorBoundary>
@@ -32,7 +32,7 @@ function App() {
               </ErrorBoundary>
             </WebSocketProvider>
           </NotificationProvider>
-        </AuthProvider>
+        {/*</AuthProvider>*/}
       </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
