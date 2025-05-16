@@ -1,5 +1,6 @@
 import { createContext, useContext, ReactNode, useEffect, useState, useCallback } from 'react';
 import { Alert } from '@/types';
+import { useNotification } from '@/contexts/NotificationContext';
 
 interface WebSocketContextType {
     alerts: Alert[];
@@ -19,9 +20,11 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     const [isConnected, setIsConnected] = useState(false);
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [readings, setReadings] = useState<any[]>([]);
+    const [retryCount, setRetryCount] = useState(0);
+    const { showNotification } = useNotification();
 
     const connectWebSocket = useCallback(() => {
-        const wsUrl = import.meta.env.VITE_WS_URL;
+        const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws';
         const ws = new WebSocket(wsUrl);
 
         const handleMessage = (event: MessageEvent) => {
@@ -29,6 +32,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
                 const data = JSON.parse(event.data);
                 if (data.type === 'alert') {
                     setAlerts(prev => [data.data, ...prev].slice(0, 50));
+                    showNotification(`New alert: ${data.data.message}`, 'warning');
                 } else if (data.type === 'reading') {
                     setReadings(prev => [data.data, ...prev].slice(0, 50));
                 }
@@ -41,6 +45,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
             console.log('WebSocket connected');
             setIsConnected(true);
             setSocket(ws);
+            setRetryCount(0);
         });
 
         ws.addEventListener('message', handleMessage);
@@ -49,7 +54,10 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
             console.log('WebSocket disconnected');
             setIsConnected(false);
             setSocket(null);
-            setTimeout(connectWebSocket, 5000);
+            // Exponential backoff for reconnection
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+            setTimeout(connectWebSocket, delay);
+            setRetryCount(prev => prev + 1);
         });
 
         ws.addEventListener('error', (error) => {
@@ -57,7 +65,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
         });
 
         return ws;
-    }, []);
+    }, [retryCount, showNotification]);
 
     useEffect(() => {
         const ws = connectWebSocket();
@@ -71,6 +79,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     const sendMessage = useCallback((message: string) => {
         if (socket && socket.readyState === WebSocket.OPEN) {
             socket.send(message);
+        } else {
+            console.error('WebSocket is not connected');
         }
     }, [socket]);
 

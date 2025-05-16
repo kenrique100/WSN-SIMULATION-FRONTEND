@@ -27,7 +27,7 @@ export default function NodeStatusChart({ stats }: NodeStatusChartProps) {
     const chartData = [
         { name: 'Active', value: stats.active },
         { name: 'Inactive', value: stats.inactive },
-        { name: 'Maintenance', value: stats.maintenance },
+        { name: 'Maintenance', value: stats.maintenance || 0 },
     ];
 
     return (

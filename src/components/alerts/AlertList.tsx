@@ -1,123 +1,130 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import {
-    Box, Typography, TextField, IconButton,
-    Tooltip, Button, CircularProgress, Alert as MuiAlert,
-    Paper
+  Box,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip,
+  CircularProgress,
+  IconButton,
+  TablePagination
 } from '@mui/material';
-import { Refresh } from '@mui/icons-material';
-import { getAlerts, acknowledgeAlert } from '@/api/alerts';
-import AlertTable from '@/components/alerts/AlertTable';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { useQuery } from '@tanstack/react-query';
+import { getAlerts } from '@/api/alerts';
 import { useAuth } from '@/contexts/AuthContext';
+import React, { useState } from 'react';
 
 export default function AlertList() {
-    const { user } = useAuth();
-    const [page, setPage] = useState(0);
-    const [size] = useState(10);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [showAcknowledged, setShowAcknowledged] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
-    const {
-        data,
-        isLoading,
-        isError,
-        error,
-        refetch,
-        isRefetching
-    } = useQuery({
-        queryKey: ['alerts', page, size, showAcknowledged],
-        queryFn: () => getAlerts(showAcknowledged ? undefined : false, page, size),
-        retry: 1,
-    });
+  const {
+    data: alertsData,
+    isLoading,
+    isError,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['alerts', page, rowsPerPage],
+    queryFn: () => getAlerts(undefined, page, rowsPerPage),
+    enabled: isAuthenticated,
+    retry: false
+  });
 
-    const handleAcknowledge = async (alertId: number) => {
-        if (user?.userId) {
-            try {
-                await acknowledgeAlert(alertId, user.userId);
-                await refetch();
-            } catch (error) {
-                console.error('Failed to acknowledge alert:', error);
-            }
-        }
-    };
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
 
-    const filteredAlerts = data?.content?.filter(alert =>
-      alert.message?.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || [];
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
-    if (isLoading) {
-        return (
-          <Box display="flex" justifyContent="center" mt={4}>
-              <CircularProgress />
-          </Box>
-        );
-    }
-
-    if (isError && !data) {
-        return (
-          <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <MuiAlert severity="error" sx={{ mb: 2 }}>
-                  {error.message}
-              </MuiAlert>
-              <Typography variant="h6" gutterBottom>
-                  Offline Mode
-              </Typography>
-              <Typography sx={{ mb: 2 }}>
-                  Unable to connect to the server. Displaying limited functionality.
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<Refresh />}
-                onClick={() => refetch()}
-                disabled={isRefetching}
-              >
-                  Retry Connection
-              </Button>
-          </Paper>
-        );
-    }
-
+  if (!isAuthenticated) {
     return (
-      <Box sx={{ p: 3 }}>
-          {isError && (
-            <MuiAlert severity="warning" sx={{ mb: 2 }}>
-                Connection issues detected. Some data may be outdated.
-            </MuiAlert>
-          )}
-
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="h5">Alerts</Typography>
-              <Box>
-                  <TextField
-                    size="small"
-                    placeholder="Search alerts..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    sx={{ mr: 2 }}
-                  />
-                  <Button
-                    variant="outlined"
-                    onClick={() => setShowAcknowledged(!showAcknowledged)}
-                    sx={{ mr: 2 }}
-                  >
-                      {showAcknowledged ? 'Hide Acknowledged' : 'Show Only Pending'}
-                  </Button>
-                  <Tooltip title="Refresh">
-                      <IconButton onClick={() => refetch()} disabled={isRefetching}>
-                          <Refresh />
-                      </IconButton>
-                  </Tooltip>
-              </Box>
-          </Box>
-
-          <AlertTable
-            alerts={filteredAlerts}
-            onAcknowledge={handleAcknowledge}
-            totalElements={data?.totalElements || 0}
-            page={page}
-            size={size}
-            onPageChange={setPage}
-          />
+      <Box display="flex" justifyContent="center" p={4}>
+        <Typography>Please login to view alerts</Typography>
       </Box>
     );
+  }
+
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" p={4}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Box p={2}>
+        <Typography color="error">
+          {error?.message || 'Failed to load alerts'}
+        </Typography>
+        <IconButton onClick={() => refetch()}>
+          <RefreshIcon />
+        </IconButton>
+      </Box>
+    );
+  }
+
+  return (
+    <Box>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Message</TableCell>
+              <TableCell>Timestamp</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Level</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {alertsData?.content.map((alert) => (
+              <TableRow key={alert.alertId}>
+                <TableCell>{alert.message}</TableCell>
+                <TableCell>
+                  {new Date(alert.timestamp).toLocaleString()}
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={alert.acknowledged ? 'Acknowledged' : 'Pending'}
+                    color={alert.acknowledged ? 'success' : 'warning'}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={alert.alertLevel}
+                    color={
+                      alert.alertLevel === 'CRITICAL' ? 'error' :
+                        alert.alertLevel === 'WARNING' ? 'warning' : 'info'
+                    }
+                    size="small"
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={alertsData?.totalElements || 0}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+      />
+    </Box>
+  );
 }

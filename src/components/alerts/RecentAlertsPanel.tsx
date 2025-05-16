@@ -1,103 +1,122 @@
 import {
-    Box,
-    Typography,
+    Alert as MuiAlert,
+    AlertTitle,
     List,
     ListItem,
     ListItemText,
     Chip,
+    Typography,
+    Box,
     IconButton,
+    CircularProgress
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { getRecentAlerts } from '@/api/alerts';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import Loading from '@/components/common/Loading';
-import ErrorAlert from '@/components/common/ErrorAlert';
+import { getRecentAlerts } from '@/api/alerts';
+import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
-import { AlertLevel } from '@/types';
-import { formatDate } from '@/types/helpers';
+import type { Alert } from '@/types';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 
-const getAlertColor = (level: AlertLevel): 'error' | 'warning' | 'info' => {
+const getAlertColor = (level: 'INFO' | 'WARNING' | 'CRITICAL') => {
     switch (level) {
-        case 'CRITICAL':
-            return 'error';
-        case 'WARNING':
-            return 'warning';
-        default:
-            return 'info';
+        case 'CRITICAL': return 'error';
+        case 'WARNING': return 'warning';
+        default: return 'info';
     }
 };
 
-export default function RecentAlertsPanel() {
+interface RecentAlertsPanelProps {
+    maxItems?: number;
+}
+
+export default function RecentAlertsPanel({ maxItems = 5 }: RecentAlertsPanelProps) {
+    const { isAuthenticated } = useAuth();
+    const { alerts: wsAlerts } = useWebSocket();
+
     const {
         data: alerts,
         isLoading,
         isError,
         error,
-        refetch,
-    } = useQuery({
-        queryKey: ['recentAlerts'],
-        queryFn: () => getRecentAlerts(5),
-        staleTime: 1000 * 60, // 1 minute
+        refetch
+    } = useQuery<Alert[]>({
+        queryKey: ['recentAlerts', maxItems],
+        queryFn: () => getRecentAlerts(maxItems),
+        enabled: isAuthenticated,
+        retry: false
     });
 
-    const { alerts: wsAlerts } = useWebSocket();
-
-    // Update on new WebSocket alerts
     useEffect(() => {
         if (wsAlerts.length > 0) {
-            void refetch(); // explicitly ignoring the promise
+            refetch().catch(console.error);
         }
     }, [wsAlerts, refetch]);
 
-    if (isLoading) return <Loading />;
+    if (!isAuthenticated) {
+        return (
+          <Box p={2}>
+              <Typography variant="body2">Please login to view recent alerts</Typography>
+          </Box>
+        );
+    }
+
+    if (isLoading) {
+        return (
+          <Box display="flex" justifyContent="center" p={2}>
+              <CircularProgress size={24} />
+          </Box>
+        );
+    }
 
     if (isError) {
         return (
-            <ErrorAlert
-                message={(error as Error).message}
-                retryable
-                onRetry={() => {
-                    void refetch(); // ignore returned promise explicitly
-                }}
-            />
+          <Box p={2}>
+              <Typography color="error" variant="body2">
+                  {error?.message || 'Failed to load recent alerts'}
+              </Typography>
+          </Box>
         );
     }
 
     return (
-        <Box sx={{ p: 2, border: '1px solid #eee', borderRadius: 1 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h6">Recent Alerts</Typography>
-                <IconButton
-                    onClick={() => {
-                        void refetch(); // ignore returned promise explicitly
-                    }}
-                    size="small"
-                >
-                    <RefreshIcon fontSize="small" />
-                </IconButton>
-            </Box>
-            <List dense>
-                {alerts?.map((alert) => (
-                    <ListItem key={alert.alertId} sx={{ py: 1 }}>
-                        <ListItemText
-                            primary={alert.message || 'No message'}
-                            secondary={formatDate(new Date(alert.timestamp))}
-                            sx={{ mr: 2 }}
-                        />
-                        <Chip
+      <Box>
+          <MuiAlert
+            severity="info"
+            sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
+          >
+              <Box width="100%" display="flex" justifyContent="space-between" alignItems="center">
+                  <AlertTitle>Recent Alerts</AlertTitle>
+                  <IconButton size="small" onClick={() => refetch()}>
+                      <RefreshIcon fontSize="small" />
+                  </IconButton>
+              </Box>
+
+              {alerts?.length === 0 ? (
+                <Typography variant="body2">No recent alerts</Typography>
+              ) : (
+                <List dense>
+                    {alerts?.map((alert) => (
+                      <ListItem key={alert.alertId} sx={{ py: 0.5 }}>
+                          <ListItemText
+                            primary={alert.message || 'Alert'}
+                            secondary={new Date(alert.timestamp).toLocaleString()}
+                            secondaryTypographyProps={{
+                                color: alert.acknowledged ? 'text.secondary' : 'error.main',
+                                variant: 'caption',
+                            }}
+                          />
+                          <Chip
                             label={alert.alertLevel}
-                            color={getAlertColor(alert.alertLevel)}
                             size="small"
-                        />
-                    </ListItem>
-                ))}
-                {alerts?.length === 0 && (
-                    <ListItem>
-                        <ListItemText primary="No recent alerts" />
-                    </ListItem>
-                )}
-            </List>
-        </Box>
+                            color={getAlertColor(alert.alertLevel)}
+                            sx={{ ml: 1 }}
+                          />
+                      </ListItem>
+                    ))}
+                </List>
+              )}
+          </MuiAlert>
+      </Box>
     );
 }

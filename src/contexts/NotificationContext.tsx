@@ -1,9 +1,4 @@
-import {
-    createContext,
-    useContext,
-    ReactNode,
-    useState
-} from 'react';
+import { createContext, useContext, ReactNode, useState } from 'react';
 import { AlertColor, Snackbar } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
 
@@ -24,10 +19,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const [notification, setNotification] = useState<Notification | null>(null);
     const [open, setOpen] = useState(false);
 
-    const showNotification = (
-      message: string,
-      severity: AlertColor = 'info'
-    ) => {
+    const showNotification = (message: string, severity: AlertColor = 'info') => {
         setNotification({ message, severity });
         setOpen(true);
     };

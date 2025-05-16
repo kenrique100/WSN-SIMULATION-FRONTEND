@@ -30,10 +30,10 @@ interface DetailItemProps {
 }
 
 const DetailItem = ({ label, value }: DetailItemProps) => (
-    <Box>
-        <Typography variant="subtitle2" color="textSecondary">{label}</Typography>
-        <Typography variant="body1">{value ?? '-'}</Typography>
-    </Box>
+  <Box>
+      <Typography variant="subtitle2" color="textSecondary">{label}</Typography>
+      <Typography variant="body1">{value ?? '-'}</Typography>
+  </Box>
 );
 
 export default function AlertDetails() {
@@ -51,47 +51,47 @@ export default function AlertDetails() {
     if (!alert) return <ErrorAlert message="Alert not found" />;
 
     return (
-        <Box sx={{ p: 3 }}>
-            <Button
-                startIcon={<ArrowBackIcon />}
-                onClick={() => navigate(-1)}
-                sx={{ mb: 2 }}
-            >
-                Back to Alerts
-            </Button>
+      <Box sx={{ p: 3 }}>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate(-1)}
+            sx={{ mb: 2 }}
+          >
+              Back to Alerts
+          </Button>
 
-            <Paper sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                    <Typography variant="h5">Alert Details</Typography>
-                    <Chip
-                        label={getAlertLabel(alert.alertLevel)}
-                        color={getAlertColor(alert.alertLevel)}
-                    />
-                </Box>
+          <Paper sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h5">Alert Details</Typography>
+                  <Chip
+                    label={getAlertLabel(alert.alertLevel)}
+                    color={getAlertColor(alert.alertLevel)}
+                  />
+              </Box>
 
-                <Divider sx={{ my: 2 }} />
+              <Divider sx={{ my: 2 }} />
 
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
-                    <DetailItem label="Alert ID" value={alert.alertId} />
-                    <DetailItem label="Sensor ID" value={alert.sensorId} />
-                    <DetailItem label="Reading ID" value={alert.readingId} />
-                    <DetailItem label="Timestamp" value={formatDate(new Date(alert.timestamp))} />
-                    <DetailItem label="Acknowledged" value={alert.acknowledged ? 'Yes' : 'No'} />
-                    {alert.acknowledged && (
-                        <>
-                            <DetailItem label="Acknowledged By" value={alert.acknowledgedBy?.toString() || 'Unknown'} />
-                            <DetailItem label="Acknowledged At" value={formatDate(new Date(alert.acknowledgedAt!))} />
-                        </>
-                    )}
-                </Box>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+                  <DetailItem label="Alert ID" value={alert.alertId} />
+                  <DetailItem label="Sensor ID" value={alert.sensorId} />
+                  <DetailItem label="Reading ID" value={alert.readingId} />
+                  <DetailItem label="Timestamp" value={formatDate(new Date(alert.timestamp))} />
+                  <DetailItem label="Acknowledged" value={alert.acknowledged ? 'Yes' : 'No'} />
+                  {alert.acknowledged && (
+                    <>
+                        <DetailItem label="Acknowledged By" value={alert.acknowledgedBy?.toString() || 'Unknown'} />
+                        <DetailItem label="Acknowledged At" value={formatDate(new Date(alert.acknowledgedAt!))} />
+                    </>
+                  )}
+              </Box>
 
-                <Divider sx={{ my: 3 }} />
+              <Divider sx={{ my: 3 }} />
 
-                <Box>
-                    <Typography variant="subtitle1" gutterBottom>Message</Typography>
-                    <Typography>{alert.message || 'No message provided'}</Typography>
-                </Box>
-            </Paper>
-        </Box>
+              <Box>
+                  <Typography variant="subtitle1" gutterBottom>Message</Typography>
+                  <Typography>{alert.message || 'No message provided'}</Typography>
+              </Box>
+          </Paper>
+      </Box>
     );
 }

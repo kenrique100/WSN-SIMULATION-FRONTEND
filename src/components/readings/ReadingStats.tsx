@@ -19,16 +19,7 @@ import {
 import Loading from '@/components/common/Loading';
 import { useNotification } from '@/contexts/NotificationContext';
 import React from 'react';
-
-interface ReadingStats {
-  average?: number;
-  min?: number;
-  max?: number;
-  count?: number;
-  firstReading?: string;
-  lastReading?: string;
-  trend?: 'up' | 'down' | 'stable';
-}
+import type { ReadingStats } from '@/types';
 
 interface ReadingStatsProps {
   sensorId?: number;

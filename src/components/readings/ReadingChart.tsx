@@ -1,3 +1,4 @@
+// src/components/readings/ReadingChart.tsx
 import {
   Box,
   CircularProgress,
@@ -20,7 +21,7 @@ import { getSensorReadings, getNodeReadings } from '@/api/readings';
 import { SENSOR_TYPES } from '@/types/constants';
 import { useNotification } from '@/contexts/NotificationContext';
 import React from 'react';
-import type { Reading } from '@/types';
+import type { PaginatedResponse, Reading } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 
 interface ReadingChartProps {
@@ -47,11 +48,13 @@ export default function ReadingChart({ sensorId, nodeId, hours = 24 }: ReadingCh
     : () => getNodeReadings(nodeId!, 0, 100);
 
   const {
-    data: readings = [],
+    data: readingsData,
     isLoading,
     isError,
     error,
-  } = useQuery<Reading[], Error>({ queryKey, queryFn });
+  } = useQuery<PaginatedResponse<Reading>, Error>({ queryKey, queryFn });
+
+  const readings = readingsData?.content || [];
 
   React.useEffect(() => {
     if (isError && error) {

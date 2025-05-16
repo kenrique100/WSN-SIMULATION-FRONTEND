@@ -1,21 +1,18 @@
-import { Box } from '@mui/material';
 import NetworkGraph from '@/components/topology/NetworkGraph';
 import PageHeader from '@/components/common/PageHeader';
 import PageWrapper from '@/components/layout/PageWrapper';
 
-export default function Topology() {
+export default function TopologyPage() {
   return (
-    <Box>
-      <PageWrapper>
+    <PageWrapper>
       <PageHeader
         title="Network Topology"
         breadcrumbs={[
           { label: 'Dashboard', href: '/' },
-          { label: 'Topology' },
+          { label: 'Network Topology' },
         ]}
       />
       <NetworkGraph />
-      </PageWrapper>
-    </Box>
+    </PageWrapper>
   );
 }

@@ -11,48 +11,30 @@ import {
   Paper,
   Button,
   IconButton,
-  CircularProgress,
-  Alert,
-  TextField,
-  Chip,
-  Stack,
+  CircularProgress
 } from '@mui/material';
 import { getThresholds } from '@/api/thresholds';
 import { Link } from 'react-router-dom';
 import EditIcon from '@mui/icons-material/Edit';
 import { useNotification } from '@/contexts/NotificationContext';
-import type { AlertThreshold } from '@/types';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 
 export default function ThresholdList() {
   const { showNotification } = useNotification();
+  const [page] = useState(0);
+  const [size] = useState(10);
 
   const {
-    data: thresholds = [],
+    data: thresholdsData,
     isLoading,
     isError,
-    error,
-  } = useQuery<AlertThreshold[], Error>({
-    queryKey: ['thresholds'],
-    queryFn: getThresholds,
-    retry: 2,
-    refetchOnWindowFocus: false,
+    error
+  } = useQuery({
+    queryKey: ['thresholds', page, size],
+    queryFn: () => getThresholds(page, size),
   });
 
-  const [sensorTypeFilter, setSensorTypeFilter] = useState('');
-  const [notificationFilter, setNotificationFilter] = useState<'all' | 'enabled' | 'disabled'>('all');
-
-  const filteredThresholds = useMemo(() => {
-    return thresholds.filter((threshold) => {
-      const matchesSensor =
-        threshold.sensorType.toLowerCase().includes(sensorTypeFilter.toLowerCase());
-      const matchesNotification =
-        notificationFilter === 'all' ||
-        (notificationFilter === 'enabled' && threshold.notificationEnabled) ||
-        (notificationFilter === 'disabled' && !threshold.notificationEnabled);
-      return matchesSensor && matchesNotification;
-    });
-  }, [thresholds, sensorTypeFilter, notificationFilter]);
+  const thresholds = thresholdsData?.content || [];
 
   if (isError) {
     showNotification(`Error loading thresholds: ${error?.message || 'Unknown error'}`, 'error');
@@ -68,103 +50,44 @@ export default function ThresholdList() {
 
   return (
     <Box>
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 2,
-        }}
-      >
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5">Thresholds</Typography>
-        <Button
-          component={Link}
-          to="/thresholds/new"
-          variant="contained"
-          color="primary"
-        >
+        <Button component={Link} to="/thresholds/new" variant="contained">
           Add New Threshold
         </Button>
       </Box>
 
-      <Stack direction="row" spacing={2} mb={2} flexWrap="wrap">
-        <TextField
-          label="Filter by Sensor Type"
-          variant="outlined"
-          size="small"
-          value={sensorTypeFilter}
-          onChange={(e) => setSensorTypeFilter(e.target.value)}
-        />
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Chip
-            label="All"
-            clickable
-            color={notificationFilter === 'all' ? 'primary' : 'default'}
-            onClick={() => setNotificationFilter('all')}
-          />
-          <Chip
-            label="Enabled"
-            clickable
-            color={notificationFilter === 'enabled' ? 'primary' : 'default'}
-            onClick={() => setNotificationFilter('enabled')}
-          />
-          <Chip
-            label="Disabled"
-            clickable
-            color={notificationFilter === 'disabled' ? 'primary' : 'default'}
-            onClick={() => setNotificationFilter('disabled')}
-          />
-        </Stack>
-      </Stack>
-
-      {filteredThresholds.length === 0 ? (
-        <Alert severity="info" sx={{ my: 2 }}>
-          No thresholds match the current filters.
-        </Alert>
-      ) : (
-        <TableContainer component={Paper} elevation={2}>
-          <Table aria-label="thresholds table">
-            <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableRow>
-                <TableCell><strong>Sensor Type</strong></TableCell>
-                <TableCell align="right"><strong>Min Value</strong></TableCell>
-                <TableCell align="right"><strong>Max Value</strong></TableCell>
-                <TableCell><strong>Notifications</strong></TableCell>
-                <TableCell align="center"><strong>Actions</strong></TableCell>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Sensor Type ID</TableCell>
+              <TableCell align="right">Warning Level</TableCell>
+              <TableCell align="right">Danger Level</TableCell>
+              <TableCell>Updated By</TableCell>
+              <TableCell align="center">Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {thresholds.map((threshold) => (
+              <TableRow key={threshold.thresholdId}>
+                <TableCell>{threshold.sensorTypeId}</TableCell>
+                <TableCell align="right">{threshold.warningLevel}</TableCell>
+                <TableCell align="right">{threshold.dangerLevel}</TableCell>
+                <TableCell>User #{threshold.updatedBy}</TableCell>
+                <TableCell align="center">
+                  <IconButton
+                    component={Link}
+                    to={`/thresholds/${threshold.thresholdId}/edit`}
+                  >
+                    <EditIcon />
+                  </IconButton>
+                </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredThresholds.map((threshold) => (
-                <TableRow key={threshold.id} hover>
-                  <TableCell>{threshold.sensorType}</TableCell>
-                  <TableCell align="right">
-                    {threshold.minValue?.toLocaleString() ?? '-'}
-                  </TableCell>
-                  <TableCell align="right">
-                    {threshold.maxValue?.toLocaleString() ?? '-'}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={threshold.notificationEnabled ? 'Enabled' : 'Disabled'}
-                      color={threshold.notificationEnabled ? 'success' : 'default'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton
-                      component={Link}
-                      to={`/thresholds/${threshold.id}`}
-                      aria-label="edit"
-                    >
-                      <EditIcon color="primary" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   );
 }

@@ -1,8 +1,7 @@
-// src/components/nodes/NodeList.tsx
 import {
     Box, Typography, Table, TableBody, TableCell, TableContainer,
     TableHead, TableRow, Paper, IconButton, Tooltip, TextField,
-    Button, Dialog, DialogTitle, DialogContent, Alert, Stack, Chip
+    Button, Dialog, DialogTitle, DialogContent, Stack, Chip
 } from '@mui/material';
 import { Add, Edit, Delete, Refresh } from '@mui/icons-material';
 import { createNode, deleteNode } from '@/api/nodes';
@@ -123,22 +122,26 @@ export default function NodeList({ nodes }: NodeListProps) {
               />
           </Stack>
 
-          {filteredNodes.length === 0 ? (
-            <Alert severity="info">No nodes found</Alert>
-          ) : (
-            <TableContainer component={Paper} elevation={2}>
-                <Table>
-                    <TableHead sx={{ backgroundColor: 'action.hover' }}>
+          <TableContainer component={Paper} elevation={2}>
+              <Table>
+                  <TableHead sx={{ backgroundColor: 'action.hover' }}>
+                      <TableRow>
+                          <TableCell><strong>Name</strong></TableCell>
+                          <TableCell><strong>Location</strong></TableCell>
+                          <TableCell><strong>Status</strong></TableCell>
+                          <TableCell><strong>Last Heartbeat</strong></TableCell>
+                          <TableCell align="center"><strong>Actions</strong></TableCell>
+                      </TableRow>
+                  </TableHead>
+                  <TableBody>
+                      {filteredNodes.length === 0 ? (
                         <TableRow>
-                            <TableCell><strong>Name</strong></TableCell>
-                            <TableCell><strong>Location</strong></TableCell>
-                            <TableCell><strong>Status</strong></TableCell>
-                            <TableCell><strong>Last Heartbeat</strong></TableCell>
-                            <TableCell align="center"><strong>Actions</strong></TableCell>
+                            <TableCell colSpan={5} align="center">
+                                No nodes found
+                            </TableCell>
                         </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {filteredNodes.map((node) => (
+                      ) : (
+                        filteredNodes.map((node) => (
                           <TableRow key={node.nodeId} hover>
                               <TableCell>{node.name}</TableCell>
                               <TableCell>{node.location}</TableCell>
@@ -182,11 +185,11 @@ export default function NodeList({ nodes }: NodeListProps) {
                                   </Tooltip>
                               </TableCell>
                           </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-          )}
+                        ))
+                      )}
+                  </TableBody>
+              </Table>
+          </TableContainer>
 
           <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
               <DialogTitle>{editNode ? 'Edit Node' : 'Create New Node'}</DialogTitle>

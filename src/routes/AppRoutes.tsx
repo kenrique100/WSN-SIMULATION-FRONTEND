@@ -9,29 +9,15 @@ import Layout from '@/components/layout/Layout';
 import Thresholds from '@/pages/Thresholds';
 import Topology from '@/pages/Topology';
 import UserManagementPage from '@/pages/UserManagementPage';
-import React, { ReactNode } from 'react';
-import ProdProtectedRoute from '@/routes/ProtectedRoute';
-
-interface ProtectedWrapperProps {
-  children: ReactNode;
-  roles?: string[];
-}
-
-// Dev mode wrapper (no protection)
-const DevRoute = ({ children }: { children: ReactNode }) => <>{children}</>;
-
-// Unified wrapper
-const ProtectedRoute = ({ children, roles }: ProtectedWrapperProps) => {
-  if (import.meta.env.MODE === 'development') {
-    return <DevRoute>{children}</DevRoute>;
-  }
-  return <ProdProtectedRoute roles={roles}>{children}</ProdProtectedRoute>;
-};
+import React from 'react';
+import ProtectedRoute from '@/routes/ProtectedRoute';
+import Login from '@/pages/Login';
+import { Role } from '@/types';
 
 export default function AppRoutes() {
   return (
     <Routes>
-      {/*<Route path="/login" element={<Login />} />
+      <Route path="/login" element={<Login />} />
 
       <Route element={<Layout />}>
         <Route path="/" element={
@@ -60,31 +46,20 @@ export default function AppRoutes() {
           </ProtectedRoute>
         } />
         <Route path="/thresholds" element={
-          <ProtectedRoute roles={['ADMIN']}>
+          <ProtectedRoute roles={[Role.ADMIN]}>
             <Thresholds />
           </ProtectedRoute>
         } />
         <Route path="/topology" element={
-          <ProtectedRoute roles={['ADMIN']}>
+          <ProtectedRoute roles={[Role.ADMIN]}>
             <Topology />
           </ProtectedRoute>
         } />
         <Route path="/users" element={
-          <ProtectedRoute roles={['ADMIN']}>
+          <ProtectedRoute roles={[Role.ADMIN]}>
             <UserManagementPage />
           </ProtectedRoute>
         } />
-      </Route>*/}
-
-      <Route element={<Layout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/nodes" element={<Nodes />} />
-        <Route path="/alerts" element={<Alerts />} />
-        <Route path="/readings/:sensorId?" element={<Readings />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/thresholds" element={<Thresholds />} />
-        <Route path="/topology" element={<Topology />} />
-        <Route path="/users" element={<UserManagementPage />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

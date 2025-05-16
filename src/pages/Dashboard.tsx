@@ -1,162 +1,131 @@
-// src/pages/dashboard/index.tsx
 import {
     Grid,
     Card,
     CardContent,
     Box,
     Typography,
-    Alert as MuiAlert
+    Alert as MuiAlert,
+    CircularProgress,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { getNodes, getNodeStatusStats } from '@/api/nodes';
 import { getAlertStats } from '@/api/alerts';
 import NodeStatusChart from '@/components/dashboard/NodeStatusChart';
 import AlertStatusChart from '@/components/dashboard/AlertStatusChart';
-import RecentAlerts from '@/components/dashboard/RecentAlerts';
 import NodeMap from '@/components/nodes/NodeMap';
 import PageHeader from '@/components/common/PageHeader';
-import Loading from '@/components/common/Loading';
 import PageWrapper from '@/components/layout/PageWrapper';
-import {
-    AlertStats,
-    NodeStats,
-    PaginatedResponse,
-    SensorNode,
-    Alert as AlertType
-} from '@/types';
-
-// Mock data for fallback UI with Cameroon coordinates
-const mockNodes: PaginatedResponse<SensorNode> = {
-    content: [
-        {
-            nodeId: 1,
-            name: 'Yaoundé Node',
-            location: 'Central Region',
-            latitude: 3.848,
-            longitude: 11.5021,
-            status: 'active',
-            lastHeartbeat: new Date().toISOString()
-        },
-        {
-            nodeId: 2,
-            name: 'Douala Node',
-            location: 'Littoral Region',
-            latitude: 4.0511,
-            longitude: 9.7679,
-            status: 'inactive',
-            lastHeartbeat: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-            nodeId: 3,
-            name: 'Bamenda Node',
-            location: 'Northwest Region',
-            latitude: 5.9597,
-            longitude: 10.146,
-            status: 'active',
-            lastHeartbeat: new Date().toISOString()
-        }
-    ],
-    totalElements: 3,
-    totalPages: 1,
-    page: 0,
-    size: 10
-};
-
-const mockNodeStats: NodeStats = {
-    total: 3,
-    active: 2,
-    inactive: 1,
-    maintenance: 0
-};
-
-const mockAlertStats: AlertStats = {
-    total: 5,
-    critical: 2,
-    warning: 2,
-    info: 1,
-    acknowledged: 1
-};
-
-const mockRecentAlerts: AlertType[] = [
-    {
-        alertId: 1,
-        sensorId: 101,
-        readingId: 1001,
-        alertLevel: 'CRITICAL',
-        message: 'Temperature threshold exceeded',
-        timestamp: new Date().toISOString(),
-        acknowledged: false
-    },
-    {
-        alertId: 2,
-        sensorId: 102,
-        readingId: 1002,
-        alertLevel: 'WARNING',
-        message: 'Humidity fluctuation detected',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        acknowledged: true
-    },
-    {
-        alertId: 3,
-        sensorId: 103,
-        readingId: 1003,
-        alertLevel: 'INFO',
-        message: 'Regular maintenance check',
-        timestamp: new Date(Date.now() - 86400000).toISOString(),
-        acknowledged: false
-    }
-];
+import type { PaginatedResponse, SensorNode, NodeStats, AlertStats } from '@/types';
+import RecentAlertsPanel from '@/components/alerts/RecentAlertsPanel';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import type { AxiosError } from 'axios';
 
 export default function Dashboard() {
+    const { isAuthenticated, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleUnauthorized = useCallback(async () => {
+        await logout(); // ✅ await fixes "Promise returned from logout is ignored"
+        navigate('/login');
+    }, [logout, navigate]);
+
     const {
         data: nodesData,
         isLoading: nodesLoading,
-        isError: nodesError
-    } = useQuery<PaginatedResponse<SensorNode>>({
+        isError: nodesError,
+        error: nodesErrorData,
+    } = useQuery<PaginatedResponse<SensorNode>, AxiosError>({
         queryKey: ['nodes'],
         queryFn: () => getNodes({ page: 0, size: 100 }),
-        retry: 1,
-        refetchOnWindowFocus: false
+        enabled: isAuthenticated,
+        retry: (failureCount, error) => {
+            if (error.response?.status === 401) {
+                void handleUnauthorized(); // explicitly void if not awaiting
+                return false;
+            }
+            return failureCount < 3;
+        },
     });
 
     const {
         data: nodeStats,
         isLoading: statsLoading,
-        isError: statsError
-    } = useQuery<NodeStats, Error>({
+        isError: statsError,
+        error: statsErrorData,
+    } = useQuery<NodeStats, AxiosError>({
         queryKey: ['nodeStats'],
         queryFn: getNodeStatusStats,
-        retry: 1,
-        refetchOnWindowFocus: false
+        enabled: isAuthenticated,
+        retry: (failureCount, error) => {
+            if (error.response?.status === 401) {
+                void handleUnauthorized();
+                return false;
+            }
+            return failureCount < 3;
+        },
     });
 
     const {
         data: alertStats,
         isLoading: alertStatsLoading,
-        isError: alertStatsError
-    } = useQuery<AlertStats, Error>({
+        isError: alertStatsError,
+        error: alertStatsErrorData,
+    } = useQuery<AlertStats, AxiosError>({
         queryKey: ['alertStats'],
         queryFn: getAlertStats,
-        retry: 1,
-        refetchOnWindowFocus: false
+        enabled: isAuthenticated,
+        retry: (failureCount, error) => {
+            if (error.response?.status === 401) {
+                void handleUnauthorized();
+                return false;
+            }
+            return failureCount < 3;
+        },
     });
 
-    const useMockData = nodesError || statsError || alertStatsError;
-    const isLoading = nodesLoading || statsLoading || alertStatsLoading;
+    const isLoading = useMemo(
+      () => nodesLoading || statsLoading || alertStatsLoading,
+      [nodesLoading, statsLoading, alertStatsLoading]
+    );
 
-    if (isLoading) return <Loading />;
+    const isError = useMemo(
+      () => nodesError || statsError || alertStatsError,
+      [nodesError, statsError, alertStatsError]
+    );
+
+    if (!isAuthenticated) {
+        return (
+          <PageWrapper>
+              <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+                  <Typography>Please login to view dashboard</Typography>
+              </Box>
+          </PageWrapper>
+        );
+    }
+
+    if (isLoading) {
+        return (
+          <PageWrapper>
+              <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+                  <CircularProgress />
+              </Box>
+          </PageWrapper>
+        );
+    }
 
     return (
       <PageWrapper>
           <Box sx={{ p: 3 }}>
-              <PageHeader
-                title="WSN Monitoring Dashboard"
-                breadcrumbs={[{ label: 'Dashboard', href: '/' }]}
-              />
+              <PageHeader title="WSN Monitoring Dashboard" breadcrumbs={[{ label: 'Dashboard', href: '/' }]} />
 
-              {useMockData && (
-                <MuiAlert severity="warning" sx={{ mb: 3 }}>
-                    Could not connect to server. Displaying demo data.
+              {isError && (
+                <MuiAlert severity="error" sx={{ mb: 3 }}>
+                    {nodesErrorData?.message ||
+                      statsErrorData?.message ||
+                      alertStatsErrorData?.message ||
+                      'Failed to load dashboard data'}
                 </MuiAlert>
               )}
 
@@ -167,9 +136,13 @@ export default function Dashboard() {
                               <Typography variant="h6" gutterBottom>
                                   Node Status
                               </Typography>
-                              <NodeStatusChart
-                                stats={useMockData ? mockNodeStats : nodeStats || undefined}
-                              />
+                              {statsError ? (
+                                <Box height={300} display="flex" alignItems="center" justifyContent="center">
+                                    <Typography color="error">Failed to load node status</Typography>
+                                </Box>
+                              ) : (
+                                <NodeStatusChart stats={nodeStats} />
+                              )}
                           </CardContent>
                       </Card>
                   </Grid>
@@ -180,9 +153,13 @@ export default function Dashboard() {
                               <Typography variant="h6" gutterBottom>
                                   Alert Status
                               </Typography>
-                              <AlertStatusChart
-                                stats={useMockData ? mockAlertStats : alertStats || undefined}
-                              />
+                              {alertStatsError ? (
+                                <Box height={300} display="flex" alignItems="center" justifyContent="center">
+                                    <Typography color="error">Failed to load alert stats</Typography>
+                                </Box>
+                              ) : (
+                                <AlertStatusChart stats={alertStats} />
+                              )}
                           </CardContent>
                       </Card>
                   </Grid>
@@ -193,13 +170,13 @@ export default function Dashboard() {
                               <Typography variant="h6" gutterBottom>
                                   Network Map
                               </Typography>
-                              <NodeMap
-                                nodes={
-                                    useMockData
-                                      ? mockNodes.content
-                                      : nodesData?.content || []
-                                }
-                              />
+                              {nodesError ? (
+                                <Box height={400} display="flex" alignItems="center" justifyContent="center">
+                                    <Typography color="error">Failed to load node map</Typography>
+                                </Box>
+                              ) : (
+                                <NodeMap nodes={nodesData?.content || []} />
+                              )}
                           </CardContent>
                       </Card>
                   </Grid>
@@ -210,9 +187,7 @@ export default function Dashboard() {
                               <Typography variant="h6" gutterBottom>
                                   Recent Alerts
                               </Typography>
-                              <RecentAlerts
-                                mockAlerts={useMockData ? mockRecentAlerts : undefined}
-                              />
+                              <RecentAlertsPanel />
                           </CardContent>
                       </Card>
                   </Grid>

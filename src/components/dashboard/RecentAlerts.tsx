@@ -1,4 +1,3 @@
-// src/components/dashboard/RecentAlerts.tsx
 import {
   Alert as MuiAlert,
   AlertTitle,
@@ -9,71 +8,78 @@ import {
   Typography,
   Box,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { getRecentAlerts } from '@/api/alerts';
 import { useWebSocket } from '@/contexts/WebSocketContext';
-import { mockAlerts } from '@/api/mockAlerts';
-import { useEffect } from 'react';
-import { Alert } from '@/types';
+import { useCallback, useEffect } from 'react';
+import type { Alert } from '@/types';
+import { useNotification } from '@/contexts/NotificationContext';
 
-const getAlertColor = (level: 'INFO' | 'WARNING' | 'CRITICAL') => {
-  switch (level) {
-    case 'CRITICAL':
-      return 'error';
-    case 'WARNING':
-      return 'warning';
-    default:
-      return 'info';
-  }
-};
+interface RecentAlertsProps {
+  maxItems?: number;
+}
 
-export default function RecentAlerts({ mockAlerts: overrideMock }: { mockAlerts?: Alert[] }) {
-  const {
-    data: alerts,
-    isError,
-    refetch,
-  } = useQuery({
-    queryKey: ['recentAlerts'],
-    queryFn: () => getRecentAlerts(5),
-    retry: 1,
-    refetchOnWindowFocus: false,
-  });
-
+export default function RecentAlerts({ maxItems = 5 }: RecentAlertsProps) {
   const { alerts: wsAlerts } = useWebSocket();
+  const { showNotification } = useNotification();
+
+  const { data: alerts, isLoading, isError, error, refetch } = useQuery<Alert[]>({
+    queryKey: ['recentAlerts', maxItems],
+    queryFn: () => getRecentAlerts(maxItems),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    select: useCallback((data: Alert[]) => {
+      return data.slice(0, maxItems);
+    }, [maxItems]),
+  });
 
   useEffect(() => {
     if (wsAlerts.length > 0) {
-      void refetch();
+      refetch();
+      showNotification('New alert received', 'info');
     }
-  }, [wsAlerts, refetch]);
+  }, [wsAlerts, refetch, showNotification]);
 
-  const fallbackAlerts = overrideMock ?? mockAlerts;
-  const displayAlerts: Alert[] = isError ? fallbackAlerts : alerts ?? [];
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" p={2}>
+        <CircularProgress size={24} />
+      </Box>
+    );
+  }
+
+  if (isError) {
+    return (
+      <MuiAlert severity="error">
+        {error?.message || 'Failed to load recent alerts'}
+        <IconButton size="small" onClick={() => refetch()}>
+          <RefreshIcon fontSize="small" />
+        </IconButton>
+      </MuiAlert>
+    );
+  }
 
   return (
     <Box>
       <MuiAlert
-        severity={isError ? 'warning' : 'info'}
+        severity="info"
         sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
       >
         <Box width="100%" display="flex" justifyContent="space-between" alignItems="center">
-          <AlertTitle>
-            Recent Alerts
-            {isError && <Chip label="Demo" size="small" sx={{ ml: 1 }} />}
-          </AlertTitle>
-          <IconButton size="small" onClick={() => void refetch()}>
+          <AlertTitle>Recent Alerts</AlertTitle>
+          <IconButton size="small" onClick={() => refetch()}>
             <RefreshIcon fontSize="small" />
           </IconButton>
         </Box>
 
-        {displayAlerts.length === 0 ? (
+        {alerts?.length === 0 ? (
           <Typography>No recent alerts</Typography>
         ) : (
           <List dense>
-            {displayAlerts.map((alert) => (
-              <ListItem key={alert.alertId ?? alert.timestamp} sx={{ py: 0.5 }}>
+            {alerts?.map((alert) => (
+              <ListItem key={alert.alertId} sx={{ py: 0.5 }}>
                 <ListItemText
                   primary={alert.message || 'Alert'}
                   secondary={new Date(alert.timestamp).toLocaleString()}
@@ -85,7 +91,10 @@ export default function RecentAlerts({ mockAlerts: overrideMock }: { mockAlerts?
                 <Chip
                   label={alert.alertLevel}
                   size="small"
-                  color={getAlertColor(alert.alertLevel)}
+                  color={
+                    alert.alertLevel === 'CRITICAL' ? 'error' :
+                      alert.alertLevel === 'WARNING' ? 'warning' : 'info'
+                  }
                   sx={{ ml: 1 }}
                 />
               </ListItem>

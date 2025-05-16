@@ -1,8 +1,6 @@
-// types.ts
 import { SelectChangeEvent } from '@mui/material';
 
-// src/types.ts
-export interface User {
+/*export interface User {
     userId: number;
     username: string;
     email: string;
@@ -11,7 +9,17 @@ export interface User {
     avatarUrl?: string;
     createdAt: string;
     enabled: boolean;
+}*/
+
+export interface UserResponse {
+    userId: number;
+    username: string;
+    email: string;
+    role: Role;
+    createdAt: string;
+    enabled?: boolean;
 }
+
 export enum Role {
     ADMIN = 'ADMIN',
     OPERATOR = 'OPERATOR',
@@ -20,9 +28,11 @@ export enum Role {
 
 export interface AuthResponse {
     accessToken: string;
+    refreshToken: string;
     tokenType: string;
-    user: User;
+    user: UserResponse;
 }
+
 
 export interface UserCreateRequest {
     username: string;
@@ -76,20 +86,20 @@ export interface ReadingStats {
 export interface Alert {
     alertId: number;
     sensorId: number;
-    readingId: number;
+    readingId?: number;
     alertLevel: AlertLevel;
     message?: string;
     timestamp: string;
     acknowledged: boolean;
     acknowledgedBy?: number;
     acknowledgedAt?: string;
-}
-export interface AlertStats {
-    total: number;
-    critical: number;
-    warning: number;
-    info: number;
-    acknowledged: number;
+    sensor?: {
+        sensorId: number;
+        type?: {
+            name: string;
+            unit: string;
+        };
+    };
 }
 
 export interface NetworkTopology {
@@ -102,12 +112,25 @@ export interface NetworkTopology {
     lastUpdated: string;
 }
 
-export interface Threshold {
-    id: string;
-    sensorType: string;
-    minValue?: number;
-    maxValue?: number;
-    notificationEnabled: boolean;
+export interface CreateTopologyRequest {
+    sourceNodeId: number;
+    targetNodeId: number;
+    signalStrength: number;
+}
+
+export interface ThresholdResponse {
+    thresholdId: number;
+    sensorTypeId: number;
+    warningLevel: number;
+    dangerLevel: number;
+    updatedBy: number;
+    updatedAt: string;
+}
+
+export interface ThresholdUpdateRequest {
+    warningLevel?: number;
+    dangerLevel?: number;
+    updatedBy: number;
 }
 
 export interface ReadingFilter {
@@ -120,33 +143,6 @@ export interface ReadingFilter {
     page?: number;
     size?: number;
 }
-
-export interface LoginData {
-    username: string;
-    password: string;
-}
-
-export interface AlertThreshold {
-    id: number;
-    sensorType: string;
-    sensorTypeId?: number;
-    minValue?: number;
-    maxValue?: number;
-    warningLevel?: number;
-    dangerLevel?: number;
-    notificationEnabled: boolean;
-    updatedBy?: number;
-    updatedAt?: string;
-}
-export interface AlertThresholdUpdate {
-    minValue?: number;
-    maxValue?: number;
-    warningLevel?: number;
-    dangerLevel?: number;
-    notificationEnabled?: boolean;
-    updatedBy?: number;
-}
-
 
 export interface FormButtonsProps {
     onCancel: () => void;
@@ -173,6 +169,7 @@ export interface NodeStats {
     inactive: number;
     maintenance?: number;
 }
+
 export interface AlertStats {
     total: number;
     critical: number;
@@ -187,7 +184,21 @@ export interface PaginatedResponse<T> {
     totalPages: number;
     page: number;
     size: number;
+    last?: boolean;
 }
+
+export interface ApiError {
+    message?: string;
+    error?: string;
+    statusCode?: number;
+    [key: string]: unknown;
+}
+
+export interface TokenRefreshResponse {
+    accessToken: string;
+    refreshToken: string;
+}
+
 
 export const NODE_STATUSES = [
     { value: 'active', label: 'Active' },

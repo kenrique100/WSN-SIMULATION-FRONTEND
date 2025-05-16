@@ -1,17 +1,25 @@
-// src/components/topology/NetworkGraph.tsx
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Typography,
   CircularProgress,
   Alert,
   Button,
-  Paper
+  Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Stack
 } from '@mui/material';
-import { getNetworkTopology } from '@/api/topology';
+import { getNetworkTopology, createNetworkLink } from '@/api/topology';
+import type { CreateTopologyRequest, NetworkTopology } from '@/types';
 import ForceGraph2D from 'react-force-graph-2d';
-import type { NetworkTopology } from '@/types';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import AddIcon from '@mui/icons-material/Add';
+import React, { useState } from 'react';
+import { useNotification } from '@/contexts/NotificationContext';
 
 interface GraphNode {
   id: number;
@@ -27,8 +35,17 @@ interface GraphLink {
 }
 
 export default function NetworkGraph() {
+  const queryClient = useQueryClient();
+  const { showNotification } = useNotification();
+  const [openDialog, setOpenDialog] = useState(false);
+  const [newLink, setNewLink] = useState<CreateTopologyRequest>({
+    sourceNodeId: 0,
+    targetNodeId: 0,
+    signalStrength: 0
+  });
+
   const {
-    data,
+    data: topology,
     isLoading,
     isError,
     error,
@@ -37,57 +54,35 @@ export default function NetworkGraph() {
   } = useQuery<NetworkTopology[], Error>({
     queryKey: ['networkTopology'],
     queryFn: getNetworkTopology,
-    refetchInterval: 30000,
-    retry: 1,
+    refetchInterval: 30000
   });
 
-  const renderFallbackUI = () => (
-    <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
-      <Typography variant="h6" gutterBottom>
-        Network Visualization Unavailable
-      </Typography>
-      <Typography variant="body1" sx={{ mb: 2 }}>
-        {error?.message || 'Unable to load network topology data'}
-      </Typography>
-      <Box sx={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Box>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Displaying simplified network representation
-          </Typography>
-          <Box
-            component="img"
-            src="/network-fallback.svg" // Create this simple SVG illustration
-            alt="Network diagram"
-            sx={{ width: '100%', maxWidth: '400px', opacity: 0.7 }}
-          />
-        </Box>
-      </Box>
-      <Button
-        variant="contained"
-        startIcon={<RefreshIcon />}
-        onClick={() => refetch()}
-        disabled={isRefetching}
-        sx={{ mt: 2 }}
-      >
-        Retry Connection
-      </Button>
-    </Paper>
-  );
+  const mutation = useMutation<NetworkTopology, Error, CreateTopologyRequest>({
+    mutationFn: createNetworkLink,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['networkTopology'] });
+      showNotification('Network link created successfully', 'success');
+      setOpenDialog(false);
+    },
+    onError: (error: Error) => {
+      showNotification(`Failed to create link: ${error.message}`, 'error');
+    }
+  });
 
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" my={4}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  const handleCreateLink = () => {
+    mutation.mutate(newLink);
+  };
 
-  if (isError && !data) {
-    return renderFallbackUI();
-  }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewLink(prev => ({
+      ...prev,
+      [name]: name === 'signalStrength' ? parseFloat(value) : parseInt(value)
+    }));
+  };
 
   // Prepare graph data
-  const links: GraphLink[] = (data || []).map((link) => ({
+  const links: GraphLink[] = (topology || []).map(link => ({
     source: link.sourceNodeId,
     target: link.targetNodeId,
     signalStrength: link.signalStrength,
@@ -95,7 +90,7 @@ export default function NetworkGraph() {
   }));
 
   const nodeMap = new Map<number, GraphNode>();
-  links.forEach((link) => {
+  links.forEach(link => {
     nodeMap.set(link.source, {
       id: link.source,
       name: `Node ${link.source}`,
@@ -110,13 +105,43 @@ export default function NetworkGraph() {
 
   const nodes = Array.from(nodeMap.values());
 
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" my={4}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error?.message || 'Failed to load network topology'}
+        </Alert>
+        <Button
+          variant="contained"
+          startIcon={<RefreshIcon />}
+          onClick={() => refetch()}
+          disabled={isRefetching}
+        >
+          Retry
+        </Button>
+      </Paper>
+    );
+  }
+
   return (
     <Box sx={{ position: 'relative' }}>
-      {isError && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          Couldn't connect to real-time data. Showing cached information.
-        </Alert>
-      )}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setOpenDialog(true)}
+        >
+          Add Network Link
+        </Button>
+      </Box>
 
       <Box sx={{
         height: '600px',
@@ -124,7 +149,7 @@ export default function NetworkGraph() {
         borderRadius: 1,
         position: 'relative'
       }}>
-        {data && data.length > 0 ? (
+        {topology && topology.length > 0 ? (
           <ForceGraph2D
             graphData={{ nodes, links }}
             nodeLabel="name"
@@ -135,9 +160,68 @@ export default function NetworkGraph() {
             linkColor={link => (link as GraphLink).color || '#999'}
           />
         ) : (
-          renderFallbackUI()
+          <Paper elevation={3} sx={{
+            p: 3,
+            textAlign: 'center',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center'
+          }}>
+            <Typography variant="h6" gutterBottom>
+              No Network Topology Data
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              The network appears to be empty. Add your first link to get started.
+            </Typography>
+          </Paper>
         )}
       </Box>
+
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+        <DialogTitle>Create New Network Link</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              name="sourceNodeId"
+              label="Source Node ID"
+              type="number"
+              fullWidth
+              value={newLink.sourceNodeId}
+              onChange={handleInputChange}
+              inputProps={{ min: 0 }}
+            />
+            <TextField
+              name="targetNodeId"
+              label="Target Node ID"
+              type="number"
+              fullWidth
+              value={newLink.targetNodeId}
+              onChange={handleInputChange}
+              inputProps={{ min: 0 }}
+            />
+            <TextField
+              name="signalStrength"
+              label="Signal Strength"
+              type="number"
+              fullWidth
+              value={newLink.signalStrength}
+              onChange={handleInputChange}
+              inputProps={{ step: "0.1", min: 0, max: 100 }}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
+          <Button
+            onClick={handleCreateLink}
+            disabled={mutation.isPending}
+            variant="contained"
+          >
+            {mutation.isPending ? <CircularProgress size={24} /> : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

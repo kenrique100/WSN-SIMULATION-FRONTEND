@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import {
     Box,
-    Typography,
     Table,
     TableBody,
     TableCell,
@@ -18,14 +17,14 @@ import { useParams } from 'react-router-dom';
 import { formatDate } from '@/types/helpers';
 import { Link } from 'react-router-dom';
 
-export function NodeSensors() {
+export default function NodeSensors() {
     const { nodeId } = useParams<{ nodeId: string }>();
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['nodeSensors', nodeId],
         queryFn: () => {
             if (!nodeId) throw new Error('Node ID is required');
-            return getNodeSensors(parseInt(nodeId), {}); // Fix: added empty params object
+            return getNodeSensors(parseInt(nodeId), {});
         },
         enabled: !!nodeId,
     });
@@ -43,7 +42,7 @@ export function NodeSensors() {
     if (error) {
         return (
           <Alert severity="error" sx={{ mt: 2 }}>
-              Error loading sensors: {error instanceof Error ? error.message : 'Unknown error'}
+              Error loading sensors: {error.message}
           </Alert>
         );
     }
@@ -58,9 +57,6 @@ export function NodeSensors() {
 
     return (
       <Box sx={{ mt: 3 }}>
-          <Typography variant="h6" gutterBottom>
-              Sensors
-          </Typography>
           <TableContainer component={Paper}>
               <Table size="small">
                   <TableHead>
