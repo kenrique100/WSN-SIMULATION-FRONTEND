@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -10,7 +10,7 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import apiClient from '@/api/apiClient';
+import { useAuthStore } from '@/store/authStore';
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -19,7 +19,7 @@ export default function Login() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const auth = useAuth();
+  const login = useAuthStore(state => state.login);
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/';
@@ -41,17 +41,7 @@ export default function Login() {
     setError('');
 
     try {
-      const response = await apiClient.post('/auth/login', {
-        username: formData.username,
-        password: formData.password
-      });
-
-      const { accessToken, refreshToken, user } = response.data;
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-
-      auth.setUser(user);
-      auth.setIsAuthenticated(true);
+      await login(formData.username, formData.password);
       navigate(from, { replace: true });
     } catch (err: any) {
       const errorMessage = err.response?.data?.message ||

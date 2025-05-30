@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import {
   Box,
   Button,
@@ -26,13 +25,14 @@ import {
 } from '@mui/material';
 import { Role, UserResponse } from '@/types';
 import { createUser, getAllUsers, activateUser, deactivateUser } from '@/api/auth';
+import { useAuthStore } from '@/store/authStore';
 
 interface User extends UserResponse {
   enabled: boolean;
 }
 
 const UserManagementPage: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuthStore();
   const [users, setUsers] = useState<User[]>([]);
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -50,10 +50,9 @@ const UserManagementPage: React.FC = () => {
     setIsLoading(true);
     try {
       const usersData = await getAllUsers();
-      // Map the UserResponse to User type with enabled field
       const mappedUsers = usersData.map(user => ({
         ...user,
-        enabled: user.enabled ?? true // Default to true if undefined
+        enabled: user.enabled ?? true
       }));
       setUsers(mappedUsers);
     } catch (err) {
@@ -68,8 +67,8 @@ const UserManagementPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (user?.role === Role.ADMIN) {
-      void fetchUsers(); // Explicitly void the promise
+    if (hasRole(Role.ADMIN)) {
+      void fetchUsers();
     }
   }, [user]);
 
@@ -119,7 +118,7 @@ const UserManagementPage: React.FC = () => {
     }
   };
 
-  if (user?.role !== Role.ADMIN) {
+  if (!hasRole(Role.ADMIN)) {
     return (
       <Box sx={{ p: 3 }}>
         <Typography variant="h5" color="error">

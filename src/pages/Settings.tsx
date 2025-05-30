@@ -11,12 +11,12 @@ import React, { useState } from 'react';
 import UserProfileForm from '@/components/settings/UserProfileForm';
 import ChangePasswordForm from '@/components/settings/ChangePasswordForm';
 import PreferencesForm from '@/components/settings/PreferencesForm';
-import { useAuth } from '@/contexts/AuthContext';
 import PageWrapper from '@/components/layout/PageWrapper';
+import { useAuthStore } from '@/store/authStore';
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState(0);
-  const { user } = useAuth();
+  const { user } = useAuthStore();
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);

@@ -8,24 +8,15 @@ import {
   Divider,
   IconButton
 } from '@mui/material';
-import { useAuth } from '@/contexts/AuthContext';
 import { CameraAlt } from '@mui/icons-material';
 import React, { useState } from 'react';
-
-interface User {
-  name?: string;
-  email?: string;
-  bio?: string;
-  avatarUrl?: string;
-  username?: string;
-}
+import { useAuthStore } from '@/store/authStore';
 
 export default function UserProfileForm() {
-  const { user } = useAuth() as { user: User };
+  const { user } = useAuthStore();
   const [editableUser, setEditableUser] = useState({
     name: user?.name || '',
-    email: user?.email || '',
-    bio: user?.bio || ''
+    email: user?.email || ''
   });
   const [avatar, setAvatar] = useState(user?.avatarUrl || '');
   const [isLoading, setIsLoading] = useState(false);
@@ -115,16 +106,6 @@ export default function UserProfileForm() {
               value={editableUser.email}
               onChange={(e) => setEditableUser({...editableUser, email: e.target.value})}
               variant="outlined"
-            />
-            <TextField
-              fullWidth
-              label="Bio"
-              multiline
-              rows={3}
-              value={editableUser.bio}
-              onChange={(e) => setEditableUser({...editableUser, bio: e.target.value})}
-              variant="outlined"
-              placeholder="Tell us about yourself..."
             />
           </Stack>
         </Box>

@@ -1,20 +1,12 @@
 import { SelectChangeEvent } from '@mui/material';
 
-/*export interface User {
-    userId: number;
-    username: string;
-    email: string;
-    name: string;
-    role: string;
-    avatarUrl?: string;
-    createdAt: string;
-    enabled: boolean;
-}*/
 
 export interface UserResponse {
     userId: number;
     username: string;
     email: string;
+    name: string;
+    avatarUrl: string;
     role: Role;
     createdAt: string;
     enabled?: boolean;

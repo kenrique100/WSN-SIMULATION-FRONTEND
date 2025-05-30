@@ -4,9 +4,9 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
+  TableContainer,
   Paper,
   Chip,
   CircularProgress,
@@ -16,11 +16,11 @@ import {
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useQuery } from '@tanstack/react-query';
 import { getAlerts } from '@/api/alerts';
-import { useAuth } from '@/contexts/AuthContext';
 import React, { useState } from 'react';
+import { useAuthStore } from '@/store/authStore';
 
 export default function AlertList() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuthStore();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 

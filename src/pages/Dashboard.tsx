@@ -17,17 +17,18 @@ import PageHeader from '@/components/common/PageHeader';
 import PageWrapper from '@/components/layout/PageWrapper';
 import type { PaginatedResponse, SensorNode, NodeStats, AlertStats } from '@/types';
 import RecentAlertsPanel from '@/components/alerts/RecentAlertsPanel';
-import { useAuth } from '@/contexts/AuthContext';
 import { useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { AxiosError } from 'axios';
+import { useAuthStore } from '@/store/authStore';
+import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
-    const { isAuthenticated, logout } = useAuth();
-    const navigate = useNavigate();
+    const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+    const logout = useAuthStore(state => state.logout);
+    const navigate = useNavigate(); // Add this line
 
     const handleUnauthorized = useCallback(async () => {
-        await logout(); // ✅ await fixes "Promise returned from logout is ignored"
+        await logout();
         navigate('/login');
     }, [logout, navigate]);
 

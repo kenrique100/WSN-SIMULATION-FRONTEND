@@ -2,11 +2,13 @@ import { CssBaseline } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import AppRoutes from '@/routes/AppRoutes';
-import { AuthProvider } from '@/contexts/AuthContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WebSocketProvider } from '@/contexts/WebSocketContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
-import ErrorBoundary from '@/components/common/ErroBoundary';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
+import { useEffect, useState } from 'react';
+import { useAuthStore } from '@/store/authStore';
+import Loading from '@/components/common/Loading';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,20 +20,39 @@ const queryClient = new QueryClient({
   },
 });
 
+function AuthInitializer({ children }: { children: React.ReactNode }) {
+  const initializeAuth = useAuthStore(state => state.initializeAuth);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    const init = async () => {
+      await initializeAuth();
+      setInitialized(true);
+    };
+    init();
+  }, [initializeAuth]);
+
+  if (!initialized) {
+    return <Loading fullScreen />;
+  }
+
+  return <>{children}</>;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <CssBaseline />
-        <AuthProvider>
-          <NotificationProvider>
-            <WebSocketProvider>
-              <ErrorBoundary>
+        <NotificationProvider>
+          <ErrorBoundary>
+            <AuthInitializer>
+              <WebSocketProvider>
                 <AppRoutes />
-              </ErrorBoundary>
-            </WebSocketProvider>
-          </NotificationProvider>
-        </AuthProvider>
+              </WebSocketProvider>
+            </AuthInitializer>
+          </ErrorBoundary>
+        </NotificationProvider>
       </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>

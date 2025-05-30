@@ -13,10 +13,10 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { getRecentAlerts } from '@/api/alerts';
-import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import type { Alert } from '@/types';
 import { useWebSocket } from '@/contexts/WebSocketContext';
+import { useAuthStore } from '@/store/authStore';
 
 const getAlertColor = (level: 'INFO' | 'WARNING' | 'CRITICAL') => {
     switch (level) {
@@ -31,7 +31,7 @@ interface RecentAlertsPanelProps {
 }
 
 export default function RecentAlertsPanel({ maxItems = 5 }: RecentAlertsPanelProps) {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated } = useAuthStore();
     const { alerts: wsAlerts } = useWebSocket();
 
     const {

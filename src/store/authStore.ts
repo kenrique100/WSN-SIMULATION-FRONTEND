@@ -1,15 +1,21 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { login as apiLogin, logout as apiLogout, getCurrentUser, refreshToken } from '@/api/auth';
+import {
+  login as apiLogin,
+  logout as apiLogout,
+  getCurrentUser,
+  refreshToken
+} from '@/api/auth';
 import type { UserResponse, Role } from '@/types';
 
 interface AuthState {
   user: UserResponse | null;
+  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
   initialized: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<UserResponse>;
   logout: () => Promise<void>;
   initializeAuth: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
@@ -19,6 +25,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   immer((set, get) => ({
     user: null,
+    token: localStorage.getItem('accessToken'),
     isAuthenticated: false,
     isLoading: false,
     error: null,
@@ -27,14 +34,16 @@ export const useAuthStore = create<AuthState>()(
     login: async (username, password) => {
       set({ isLoading: true, error: null });
       try {
-        const { accessToken, refreshToken, user } = await apiLogin({ username, password });
+        const { accessToken, refreshToken: newRefreshToken, user } = await apiLogin({ username, password });
         localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
+        localStorage.setItem('refreshToken', newRefreshToken);
         set({
           user,
+          token: accessToken,
           isAuthenticated: true,
           initialized: true,
         });
+        return user;
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Login failed';
         set({ error: errorMessage });
@@ -52,6 +61,7 @@ export const useAuthStore = create<AuthState>()(
         localStorage.removeItem('refreshToken');
         set({
           user: null,
+          token: null,
           isAuthenticated: false,
           initialized: true,
           error: null,
@@ -72,6 +82,7 @@ export const useAuthStore = create<AuthState>()(
         const user = await getCurrentUser();
         set({
           user,
+          token: accessToken,
           isAuthenticated: true,
           initialized: true,
         });
@@ -83,6 +94,7 @@ export const useAuthStore = create<AuthState>()(
         localStorage.removeItem('refreshToken');
         set({
           user: null,
+          token: null,
           isAuthenticated: false,
           initialized: true,
         });
@@ -105,6 +117,7 @@ export const useAuthStore = create<AuthState>()(
         const user = await getCurrentUser();
         set({
           user,
+          token: accessToken,
           isAuthenticated: true,
           initialized: true,
           error: null
@@ -115,6 +128,7 @@ export const useAuthStore = create<AuthState>()(
         localStorage.removeItem('refreshToken');
         set({
           user: null,
+          token: null,
           isAuthenticated: false,
           initialized: true,
           error: 'Session expired. Please login again.'
