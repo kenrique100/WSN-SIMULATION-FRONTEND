@@ -34,9 +34,7 @@ export default function AlertList() {
       const filter =
         acknowledgedFilter === 'all'
           ? undefined
-          : acknowledgedFilter === 'acknowledged'
-            ? true
-            : false;
+          : acknowledgedFilter === 'acknowledged' || false;
       return getAlerts(filter, page, rowsPerPage);
     },
     enabled: isAuthenticated,
