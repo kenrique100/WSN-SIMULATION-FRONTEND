@@ -1,5 +1,3 @@
-import { SelectChangeEvent } from '@mui/material';
-
 
 export interface UserResponse {
     userId: number;
@@ -57,12 +55,26 @@ export interface NodeSensor {
     calibrationDate?: string;
 }
 
+export interface SensorType {
+    name: string;
+    unit: string;
+}
+
+
+export interface NodeStats {
+    totalNodes: number;
+    activeNodes: number;
+    inactiveNodes: number;
+    maintenanceNodes: number;
+}
+
 export interface Reading {
     readingId: number;
     sensorId: number;
-    nodeId?: number;
+    nodeId: number;
     value: number;
     timestamp: string;
+    sensorType?: SensorType;
 }
 
 export interface ReadingStats {
@@ -110,12 +122,23 @@ export interface CreateTopologyRequest {
     signalStrength: number;
 }
 
-export interface ThresholdResponse {
-    thresholdId: number;
+export interface ThresholdCreateRequest {
     sensorTypeId: number;
+    infoLevel?: number;
     warningLevel: number;
     dangerLevel: number;
     updatedBy: number;
+}
+
+export interface ThresholdResponse {
+    thresholdId: number;
+    sensorTypeId: number;
+    sensorTypeName: string;
+    infoLevel: number;
+    warningLevel: number;
+    dangerLevel: number;
+    updatedBy: number;
+    updatedByRole: Role;
     updatedAt: string;
 }
 
@@ -126,34 +149,15 @@ export interface ThresholdUpdateRequest {
 }
 
 export interface ReadingFilter {
-    sensorId?: number;
-    nodeId?: number;
-    startTime?: string;
-    endTime?: string;
-    limit?: number;
-    hours?: number;
     page?: number;
     size?: number;
+    nodeId?: number;
+    sensorId?: number;
+    sort?: string;
+    hours?: number;
 }
 
-export interface FormButtonsProps {
-    onCancel: () => void;
-    isEdit?: boolean;
-}
 
-export interface LabeledSelectOption {
-    value: string;
-    label: string;
-}
-
-export interface LabeledSelectProps {
-    label: string;
-    value: string;
-    name: string;
-    options: readonly { value: string; label: string }[];
-    onChange: (e: SelectChangeEvent) => void;
-    helperText?: string;
-}
 
 export interface NodeStats {
     total: number;
@@ -176,15 +180,9 @@ export interface PaginatedResponse<T> {
     totalPages: number;
     page: number;
     size: number;
-    last?: boolean;
+    last: boolean;
 }
 
-export interface ApiError {
-    message?: string;
-    error?: string;
-    statusCode?: number;
-    [key: string]: unknown;
-}
 
 export interface TokenRefreshResponse {
     accessToken: string;

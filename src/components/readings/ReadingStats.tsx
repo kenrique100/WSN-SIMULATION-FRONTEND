@@ -1,3 +1,5 @@
+// src/components/readings/ReadingStats.tsx
+import React from 'react';
 import {
   Box,
   Grid,
@@ -18,7 +20,6 @@ import {
 } from '@mui/icons-material';
 import Loading from '@/components/common/Loading';
 import { useNotification } from '@/contexts/NotificationContext';
-import React from 'react';
 import type { ReadingStats } from '@/types';
 
 interface ReadingStatsProps {
@@ -27,7 +28,7 @@ interface ReadingStatsProps {
   hours?: number;
 }
 
-export default function ReadingStats({ sensorId, nodeId, hours = 24 }: ReadingStatsProps) {
+const ReadingStats: React.FC<ReadingStatsProps> = ({ sensorId, nodeId, hours = 24 }) => {
   const { showNotification } = useNotification();
 
   const {
@@ -150,4 +151,6 @@ export default function ReadingStats({ sensorId, nodeId, hours = 24 }: ReadingSt
       </Paper>
     </Box>
   );
-}
+};
+
+export default ReadingStats;

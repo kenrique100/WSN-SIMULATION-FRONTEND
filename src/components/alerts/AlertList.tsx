@@ -1,49 +1,73 @@
 import {
   Box,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TableContainer,
-  Paper,
-  Chip,
   CircularProgress,
   IconButton,
-  TablePagination
+  ToggleButtonGroup,
+  ToggleButton,
+  Stack,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useQuery } from '@tanstack/react-query';
-import { getAlerts } from '@/api/alerts';
+import { getAlerts, acknowledgeAlert } from '@/api/alerts';
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import AlertTable from '@/components/alerts/AlertTable';
+
+type AcknowledgedFilter = 'all' | 'acknowledged' | 'unacknowledged';
 
 export default function AlertList() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage] = useState(10);
+  const [acknowledgedFilter, setAcknowledgedFilter] = useState<AcknowledgedFilter>('all');
 
   const {
     data: alertsData,
     isLoading,
     isError,
     error,
-    refetch
+    refetch,
   } = useQuery({
-    queryKey: ['alerts', page, rowsPerPage],
-    queryFn: () => getAlerts(undefined, page, rowsPerPage),
+    queryKey: ['alerts', page, rowsPerPage, acknowledgedFilter],
+    queryFn: () => {
+      const filter =
+        acknowledgedFilter === 'all'
+          ? undefined
+          : acknowledgedFilter === 'acknowledged'
+            ? true
+            : false;
+      return getAlerts(filter, page, rowsPerPage);
+    },
     enabled: isAuthenticated,
-    retry: false
+    retry: false,
   });
 
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (
+    _event: React.MouseEvent<HTMLButtonElement> | null,
+    newPage: number
+  ) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+  const handleAcknowledgeFilterChange = (
+    _event: React.MouseEvent<HTMLElement>,
+    newValue: AcknowledgedFilter | null
+  ) => {
+    if (newValue !== null) {
+      setAcknowledgedFilter(newValue);
+      setPage(0);
+    }
+  };
+
+  const handleAcknowledgeAlert = async (alertId: number) => {
+    if (!user?.userId) return;
+    try {
+      await acknowledgeAlert(alertId, user.userId);
+      await refetch();
+    } catch (err) {
+      console.error('Failed to acknowledge alert:', err);
+    }
   };
 
   if (!isAuthenticated) {
@@ -77,53 +101,38 @@ export default function AlertList() {
 
   return (
     <Box>
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Message</TableCell>
-              <TableCell>Timestamp</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Level</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {alertsData?.content.map((alert) => (
-              <TableRow key={alert.alertId}>
-                <TableCell>{alert.message}</TableCell>
-                <TableCell>
-                  {new Date(alert.timestamp).toLocaleString()}
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={alert.acknowledged ? 'Acknowledged' : 'Pending'}
-                    color={alert.acknowledged ? 'success' : 'warning'}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={alert.alertLevel}
-                    color={
-                      alert.alertLevel === 'CRITICAL' ? 'error' :
-                        alert.alertLevel === 'WARNING' ? 'warning' : 'info'
-                    }
-                    size="small"
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <TablePagination
-        rowsPerPageOptions={[5, 10, 25]}
-        component="div"
-        count={alertsData?.totalElements || 0}
-        rowsPerPage={rowsPerPage}
+      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+        <ToggleButtonGroup
+          value={acknowledgedFilter}
+          exclusive
+          onChange={handleAcknowledgeFilterChange}
+          aria-label="acknowledged filter"
+        >
+          <ToggleButton value="all" aria-label="all alerts">
+            All
+          </ToggleButton>
+          <ToggleButton value="unacknowledged" aria-label="unacknowledged alerts">
+            Unacknowledged
+          </ToggleButton>
+          <ToggleButton value="acknowledged" aria-label="acknowledged alerts">
+            Acknowledged
+          </ToggleButton>
+        </ToggleButtonGroup>
+
+        <IconButton onClick={() => refetch()} aria-label="refresh">
+          <RefreshIcon />
+        </IconButton>
+      </Stack>
+
+      <AlertTable
+        alerts={alertsData?.content || []}
+        onAcknowledge={handleAcknowledgeAlert}
+        totalElements={alertsData?.totalElements || 0}
         page={page}
+        size={rowsPerPage}
         onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
+        isLoading={isLoading}
+        error={isError ? error : null}
       />
     </Box>
   );

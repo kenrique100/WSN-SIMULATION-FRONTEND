@@ -21,17 +21,25 @@ import {
   Select,
   Alert,
   CircularProgress,
-  Snackbar
+  Snackbar,
+  Chip,
+  IconButton,
+  useTheme
 } from '@mui/material';
 import { Role, UserResponse } from '@/types';
 import { createUser, getAllUsers, activateUser, deactivateUser } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
+import PageWrapper from '@/components/layout/PageWrapper';
+import PageHeader from '@/components/common/PageHeader';
+import AddIcon from '@mui/icons-material/Add';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 interface User extends UserResponse {
   enabled: boolean;
 }
 
 const UserManagementPage: React.FC = () => {
+  const theme = useTheme();
   const { user, logout, hasRole } = useAuthStore();
   const [users, setUsers] = useState<User[]>([]);
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
@@ -120,92 +128,139 @@ const UserManagementPage: React.FC = () => {
 
   if (!hasRole(Role.ADMIN)) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h5" color="error">
+      <PageWrapper>
+        <Alert severity="error" sx={{ m: 3 }}>
           You don't have permission to access this page.
-        </Typography>
-      </Box>
+        </Alert>
+      </PageWrapper>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        User Management
-      </Typography>
+    <PageWrapper>
+      <PageHeader
+        title="User Management"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/' },
+          { label: 'Users' }
+        ]}
+        action={
+          <>
+            <IconButton onClick={() => fetchUsers()} sx={{ mr: 1 }}>
+              <RefreshIcon />
+            </IconButton>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setOpenCreateDialog(true)}
+            >
+              New User
+            </Button>
+          </>
+        }
+      />
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
           {error}
         </Alert>
       )}
 
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => setOpenCreateDialog(true)}
-        sx={{ mb: 3 }}
-        disabled={isLoading}
+      <Paper
+        sx={{
+          p: 3,
+          borderRadius: theme.shape.borderRadius,
+          boxShadow: theme.shadows[1],
+          backgroundColor: theme.palette.background.paper,
+        }}
       >
-        Create New User
-      </Button>
-
-      {isLoading && users.length === 0 ? (
-        <Box display="flex" justifyContent="center" my={4}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Username</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.userId}>
-                  <TableCell>{user.username}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.role}</TableCell>
-                  <TableCell>{user.enabled ? 'Active' : 'Inactive'}</TableCell>
-                  <TableCell>
-                    {user.enabled ? (
-                      <Button
-                        variant="outlined"
-                        color="secondary"
-                        onClick={() => void handleDeactivateUser(user.userId)}
-                        disabled={isLoading}
-                      >
-                        Deactivate
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outlined"
-                        color="primary"
-                        onClick={() => void handleActivateUser(user.userId)}
-                        disabled={isLoading}
-                      >
-                        Activate
-                      </Button>
-                    )}
-                  </TableCell>
+        {isLoading && users.length === 0 ? (
+          <Box display="flex" justifyContent="center" my={4}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ backgroundColor: theme.palette.background.default }}>
+                  <TableCell sx={{ fontWeight: 600 }}>Username</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+              </TableHead>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow
+                    key={user.userId}
+                    hover
+                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                  >
+                    <TableCell>{user.username}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={user.role}
+                        color={
+                          user.role === Role.ADMIN
+                            ? 'primary'
+                            : user.role === Role.OPERATOR
+                              ? 'secondary'
+                              : 'default'
+                        }
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={user.enabled ? 'Active' : 'Inactive'}
+                        color={user.enabled ? 'success' : 'error'}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {user.enabled ? (
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onClick={() => void handleDeactivateUser(user.userId)}
+                          disabled={isLoading}
+                        >
+                          Deactivate
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outlined"
+                          color="success"
+                          size="small"
+                          onClick={() => void handleActivateUser(user.userId)}
+                          disabled={isLoading}
+                        >
+                          Activate
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Paper>
 
-      <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)}>
+      <Dialog
+        open={openCreateDialog}
+        onClose={() => setOpenCreateDialog(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>Create New User</DialogTitle>
         <DialogContent>
           <TextField
-            margin="dense"
+            margin="normal"
             label="Username"
             type="text"
             fullWidth
@@ -215,7 +270,7 @@ const UserManagementPage: React.FC = () => {
             required
           />
           <TextField
-            margin="dense"
+            margin="normal"
             label="Email"
             type="email"
             fullWidth
@@ -225,7 +280,7 @@ const UserManagementPage: React.FC = () => {
             required
           />
           <TextField
-            margin="dense"
+            margin="normal"
             label="Password"
             type="password"
             fullWidth
@@ -234,7 +289,7 @@ const UserManagementPage: React.FC = () => {
             disabled={isLoading}
             required
           />
-          <FormControl fullWidth margin="dense" required>
+          <FormControl fullWidth margin="normal" required>
             <InputLabel>Role</InputLabel>
             <Select
               value={newUser.role}
@@ -255,9 +310,10 @@ const UserManagementPage: React.FC = () => {
           <Button
             onClick={() => void handleCreateUser()}
             color="primary"
+            variant="contained"
             disabled={isLoading || !newUser.username || !newUser.email || !newUser.password}
           >
-            {isLoading ? 'Creating...' : 'Create'}
+            {isLoading ? 'Creating...' : 'Create User'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -266,9 +322,17 @@ const UserManagementPage: React.FC = () => {
         open={snackbarOpen}
         autoHideDuration={6000}
         onClose={() => setSnackbarOpen(false)}
-        message={snackbarMessage}
-      />
-    </Box>
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity="success"
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
+    </PageWrapper>
   );
 };
 

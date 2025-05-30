@@ -1,12 +1,14 @@
 import {
   Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Paper, Chip, Button, TableFooter, TablePagination
+  TableRow, Paper, Chip, Button, TableFooter, TablePagination,
+  Tooltip
 } from '@mui/material';
-import { Warning, Dangerous, Info } from '@mui/icons-material';
+import { Warning, Dangerous, Info, CheckCircle } from '@mui/icons-material';
 import type { Alert, AlertLevel } from '@/types';
 import { formatDate } from '@/types/helpers';
 import Loading from '@/components/common/Loading';
 import ErrorAlert from '@/components/common/ErrorAlert';
+import React from 'react';
 
 interface AlertTableProps {
   alerts: Alert[];
@@ -14,7 +16,7 @@ interface AlertTableProps {
   totalElements: number;
   page: number;
   size: number;
-  onPageChange: (page: number) => void;
+  onPageChange: (event: React.MouseEvent<HTMLButtonElement> | null, page: number) => void;
   isLoading?: boolean;
   error?: Error | null;
 }
@@ -79,7 +81,14 @@ export default function AlertTable({
               <TableCell>{formatDate(new Date(alert.timestamp))}</TableCell>
               <TableCell>
                 {alert.acknowledged ? (
-                  <Chip label="Acknowledged" color="success" />
+                  <Tooltip title={`Acknowledged by ${alert.acknowledgedBy} at ${formatDate(new Date(alert.acknowledgedAt!))}`}>
+                    <Chip
+                      icon={<CheckCircle />}
+                      label="Acknowledged"
+                      color="success"
+                      variant="outlined"
+                    />
+                  </Tooltip>
                 ) : (
                   <Chip label="Pending" color="default" />
                 )}
@@ -87,8 +96,9 @@ export default function AlertTable({
               <TableCell>
                 {!alert.acknowledged && (
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     size="small"
+                    color="primary"
                     onClick={() => onAcknowledge(alert.alertId)}
                   >
                     Acknowledge
@@ -105,7 +115,7 @@ export default function AlertTable({
               count={totalElements}
               rowsPerPage={size}
               page={page}
-              onPageChange={(_, newPage) => onPageChange(newPage)}
+              onPageChange={onPageChange}
             />
           </TableRow>
         </TableFooter>

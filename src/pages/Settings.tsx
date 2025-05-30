@@ -5,7 +5,8 @@ import {
   Paper,
   Tab,
   Tabs,
-  Typography
+  Typography,
+  useTheme
 } from '@mui/material';
 import React, { useState } from 'react';
 import UserProfileForm from '@/components/settings/UserProfileForm';
@@ -13,8 +14,10 @@ import ChangePasswordForm from '@/components/settings/ChangePasswordForm';
 import PreferencesForm from '@/components/settings/PreferencesForm';
 import PageWrapper from '@/components/layout/PageWrapper';
 import { useAuthStore } from '@/store/authStore';
+import { Person, Lock, Settings as SettingsIcon } from '@mui/icons-material';
 
 export default function Settings() {
+  const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
   const { user } = useAuthStore();
 
@@ -26,18 +29,18 @@ export default function Settings() {
     <PageWrapper>
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" fontWeight="600" gutterBottom>
+          <Typography variant="h4" fontWeight={600} gutterBottom>
             Account Settings
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Manage your profile and security settings
+            Manage your profile and security preferences
           </Typography>
         </Box>
 
         <Paper
           sx={{
-            borderRadius: 3,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.05)',
+            borderRadius: theme.shape.borderRadius,
+            boxShadow: theme.shadows[1],
             overflow: 'hidden'
           }}
         >
@@ -53,7 +56,7 @@ export default function Settings() {
               sx={{
                 width: { md: 280 },
                 bgcolor: 'background.paper',
-                borderRight: { md: '1px solid rgba(0,0,0,0.08)' },
+                borderRight: { md: `1px solid ${theme.palette.divider}` },
                 p: 3
               }}
             >
@@ -71,7 +74,7 @@ export default function Settings() {
                   {user?.name?.charAt(0) || user?.username?.charAt(0)}
                 </Avatar>
                 <Box>
-                  <Typography fontWeight="600">
+                  <Typography fontWeight={600}>
                     {user?.name || user?.username}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -84,42 +87,43 @@ export default function Settings() {
                 orientation="vertical"
                 value={activeTab}
                 onChange={handleTabChange}
-                sx={{
-                  '& .MuiTabs-indicator': {
+                TabIndicatorProps={{
+                  sx: {
                     left: 0,
-                    right: 'auto',
                     width: 3,
-                    borderRadius: 3
+                    borderRadius: theme.shape.borderRadius,
+                    backgroundColor: theme.palette.primary.main
                   }
                 }}
+                sx={{
+                  alignItems: 'flex-start'
+                }}
               >
-                <Tab
-                  label="Profile"
-                  sx={{
-                    alignItems: 'flex-start',
-                    fontSize: 15,
-                    fontWeight: 500,
-                    p: '12px 16px'
-                  }}
-                />
-                <Tab
-                  label="Security"
-                  sx={{
-                    alignItems: 'flex-start',
-                    fontSize: 15,
-                    fontWeight: 500,
-                    p: '12px 16px'
-                  }}
-                />
-                <Tab
-                  label="Preferences"
-                  sx={{
-                    alignItems: 'flex-start',
-                    fontSize: 15,
-                    fontWeight: 500,
-                    p: '12px 16px'
-                  }}
-                />
+                {[
+                  { label: 'Profile', icon: <Person fontSize="small" /> },
+                  { label: 'Security', icon: <Lock fontSize="small" /> },
+                  { label: 'Preferences', icon: <SettingsIcon fontSize="small" /> }
+                ].map((tab, index) => (
+                  <Tab
+                    key={tab.label}
+                    label={tab.label}
+                    icon={tab.icon}
+                    iconPosition="start"
+                    sx={{
+                      justifyContent: 'flex-start',
+                      textAlign: 'left',
+                      alignItems: 'center',
+                      fontSize: 15,
+                      fontWeight: 500,
+                      px: 2,
+                      py: 1.5,
+                      minHeight: 'auto',
+                      '&.Mui-selected': {
+                        color: theme.palette.primary.main
+                      }
+                    }}
+                  />
+                ))}
               </Tabs>
             </Box>
 

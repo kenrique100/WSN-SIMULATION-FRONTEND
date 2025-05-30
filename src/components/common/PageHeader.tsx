@@ -1,34 +1,34 @@
-import { Breadcrumbs, Typography, Link, Box } from '@mui/material';
+import { Box, Typography, Breadcrumbs, Link } from '@mui/material';
+import React from 'react';
 
-interface Breadcrumb {
-    label: string;
-    href?: string;
+export interface PageHeaderProps {
+  title: string;
+  breadcrumbs: { label: string; href?: string }[];
+  action?: React.ReactNode; // ✅ Add this line
 }
 
-interface PageHeaderProps {
-    title: string;
-    breadcrumbs?: Breadcrumb[];
-}
-
-export default function PageHeader({ title, breadcrumbs = [] }: PageHeaderProps) {
-    return (
-        <Box sx={{ mb: 4 }}>
-            <Typography variant="h4" gutterBottom>
-                {title}
-            </Typography>
-            <Breadcrumbs aria-label="breadcrumb">
-                {breadcrumbs.map((crumb, index) =>
-                    crumb.href ? (
-                        <Link key={index} color="inherit" href={crumb.href}>
-                            {crumb.label}
-                        </Link>
-                    ) : (
-                        <Typography key={index} color="text.primary">
-                            {crumb.label}
-                        </Typography>
-                    )
-                )}
-            </Breadcrumbs>
-        </Box>
-    );
+export default function PageHeader({ title, breadcrumbs, action }: PageHeaderProps) {
+  return (
+    <Box mb={3} display="flex" justifyContent="space-between" alignItems="center">
+      <Box>
+        <Typography variant="h4" gutterBottom>
+          {title}
+        </Typography>
+        <Breadcrumbs aria-label="breadcrumb">
+          {breadcrumbs.map((crumb, index) =>
+            crumb.href ? (
+              <Link color="inherit" href={crumb.href} key={index}>
+                {crumb.label}
+              </Link>
+            ) : (
+              <Typography color="textPrimary" key={index}>
+                {crumb.label}
+              </Typography>
+            )
+          )}
+        </Breadcrumbs>
+      </Box>
+      {action && <Box>{action}</Box>}
+    </Box>
+  );
 }

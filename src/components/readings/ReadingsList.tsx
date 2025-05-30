@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import {
   Box,
   Table,
@@ -12,45 +13,72 @@ import {
   Alert,
   TextField,
   Button,
+  TableFooter,
+  TablePagination,
 } from '@mui/material';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { getReadings, createReading } from '@/api/readings';
-import { useState } from 'react';
 import { formatDate } from '@/types/helpers';
+import { useNotification } from '@/contexts/NotificationContext';
+import type { Reading, PaginatedResponse } from '@/types';
 
-export default function ReadingsList() {
+const ReadingsList: React.FC<{ sensorId?: number; nodeId?: number }> = ({ sensorId, nodeId }) => {
   const queryClient = useQueryClient();
-
-  const [filters, setFilters] = useState({
-    page: 0,
-    size: 10,
-    sensorId: undefined as number | undefined,
-    nodeId: undefined as number | undefined,
-  });
+  const { showNotification } = useNotification();
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
 
   const [newReading, setNewReading] = useState({
-    sensorId: '',
+    sensorId: sensorId?.toString() || '',
     value: '',
   });
 
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['readings', filters],
-    queryFn: () => getReadings(filters),
+  const queryKey = ['readings', { page, size: rowsPerPage, sensorId, nodeId }];
+
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+  } = useQuery<PaginatedResponse<Reading>, Error>({
+    queryKey,
+    queryFn: () => getReadings({ page, size: rowsPerPage, sensorId, nodeId }),
+  });
+
+  React.useEffect(() => {
+    if (isError && error) {
+      showNotification(`Error loading readings: ${error.message}`, 'error');
+    }
+  }, [isError, error, showNotification]);
+
+  const createReadingMutation = useMutation({
+    mutationFn: ({ sensorId, value }: { sensorId: number; value: number }) =>
+      createReading(sensorId, value),
+    onSuccess: async () => {
+      showNotification('Reading created successfully', 'success');
+      await queryClient.invalidateQueries({ queryKey: ['readings'] });
+    },
+    onError: (err: Error) => {
+      showNotification(`Error creating reading: ${err.message}`, 'error');
+    },
   });
 
   const handleCreateReading = async () => {
     if (!newReading.sensorId || !newReading.value) return;
+    await createReadingMutation.mutateAsync({
+      sensorId: parseInt(newReading.sensorId),
+      value: parseFloat(newReading.value),
+    });
+    setNewReading((prev) => ({ ...prev, value: '' }));
+  };
 
-    try {
-      await createReading(
-        parseInt(newReading.sensorId),
-        parseFloat(newReading.value)
-      );
-      setNewReading({ sensorId: '', value: '' });
-      await queryClient.invalidateQueries({ queryKey: ['readings'] }); // ✅ FIXED HERE
-    } catch (err) {
-      console.error('Error creating reading:', err);
-    }
+  const handleChangePage = (_: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   if (isLoading) {
@@ -72,91 +100,83 @@ export default function ReadingsList() {
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
-        All Readings
+        {sensorId ? `Sensor #${sensorId} Readings` : nodeId ? `Node #${nodeId} Readings` : 'All Readings'}
       </Typography>
-
-      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-        <TextField
-          label="Sensor ID"
-          size="small"
-          value={filters.sensorId || ''}
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              sensorId: parseInt(e.target.value) || undefined,
-            })
-          }
-          type="number"
-        />
-        <TextField
-          label="Node ID"
-          size="small"
-          value={filters.nodeId || ''}
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              nodeId: parseInt(e.target.value) || undefined,
-            })
-          }
-          type="number"
-        />
-      </Box>
 
       <Box sx={{ mb: 4, p: 2, border: '1px solid #eee', borderRadius: 1 }}>
         <Typography variant="subtitle1" gutterBottom>
           Create New Reading
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <TextField
             label="Sensor ID"
             size="small"
             value={newReading.sensorId}
-            onChange={(e) =>
-              setNewReading({ ...newReading, sensorId: e.target.value })
-            }
+            onChange={(e) => setNewReading({ ...newReading, sensorId: e.target.value })}
             type="number"
+            disabled={!!sensorId}
           />
           <TextField
             label="Value"
             size="small"
             value={newReading.value}
-            onChange={(e) =>
-              setNewReading({ ...newReading, value: e.target.value })
-            }
+            onChange={(e) => setNewReading({ ...newReading, value: e.target.value })}
             type="number"
           />
           <Button
             variant="contained"
             onClick={handleCreateReading}
-            disabled={!newReading.sensorId || !newReading.value}
+            disabled={!newReading.sensorId || !newReading.value || createReadingMutation.isPending}
           >
-            Add Reading
+            {createReadingMutation.isPending ? <CircularProgress size={24} /> : 'Add Reading'}
           </Button>
         </Box>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Sensor ID</TableCell>
-              <TableCell>Value</TableCell>
-              <TableCell>Timestamp</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data?.content.map((reading) => (
-              <TableRow key={reading.readingId}>
-                <TableCell>{reading.readingId}</TableCell>
-                <TableCell>{reading.sensorId}</TableCell>
-                <TableCell>{reading.value}</TableCell>
-                <TableCell>{formatDate(new Date(reading.timestamp))}</TableCell>
+      {data?.content.length === 0 ? (
+        <Alert severity="info" sx={{ my: 2 }}>
+          No readings found
+        </Alert>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>Sensor ID</TableCell>
+                <TableCell>Node ID</TableCell>
+                <TableCell>Value</TableCell>
+                <TableCell>Timestamp</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {data?.content.map((reading: Reading) => (
+                <TableRow key={reading.readingId}>
+                  <TableCell>{reading.readingId}</TableCell>
+                  <TableCell>{reading.sensorId}</TableCell>
+                  <TableCell>{reading.nodeId}</TableCell>
+                  <TableCell>{reading.value}</TableCell>
+                  <TableCell>{formatDate(new Date(reading.timestamp))}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TablePagination
+                  rowsPerPageOptions={[10, 20, 50, 100]}
+                  count={data?.totalElements || 0}
+                  rowsPerPage={rowsPerPage}
+                  page={page}
+                  onPageChange={handleChangePage}
+                  onRowsPerPageChange={handleChangeRowsPerPage}
+                />
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </TableContainer>
+      )}
     </Box>
   );
-}
+};
+
+export default ReadingsList;

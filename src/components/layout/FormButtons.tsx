@@ -1,17 +1,49 @@
-import { Box, Button } from '@mui/material';
+import { Box, Button, CircularProgress, Stack } from '@mui/material';
 
 interface FormButtonsProps {
   onCancel: () => void;
+  onSave?: () => void;
   isEdit?: boolean;
+  isLoading?: boolean;
+  disabled?: boolean;
 }
 
-export default function FormButtons({ onCancel, isEdit = false }: FormButtonsProps) {
+export default function FormButtons({
+                                      onCancel,
+                                      onSave,
+                                      isEdit = false,
+                                      isLoading = false,
+                                      disabled = false,
+                                    }: FormButtonsProps) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
-      <Button variant="outlined" onClick={onCancel}>Cancel</Button>
-      <Button type="submit" variant="contained" color="primary">
-        {isEdit ? 'Update' : 'Create'}
+    <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 4 }}>
+      <Button
+        variant="outlined"
+        onClick={onCancel}
+        disabled={isLoading}
+        sx={{ minWidth: 100 }}
+      >
+        Cancel
       </Button>
-    </Box>
+      <Button
+        type="submit"
+        variant="contained"
+        color="primary"
+        onClick={onSave}
+        disabled={disabled || isLoading}
+        sx={{ minWidth: 100 }}
+      >
+        {isLoading ? (
+          <>
+            <CircularProgress size={24} sx={{ mr: 1 }} />
+            {isEdit ? 'Updating...' : 'Creating...'}
+          </>
+        ) : isEdit ? (
+          'Update'
+        ) : (
+          'Create'
+        )}
+      </Button>
+    </Stack>
   );
 }

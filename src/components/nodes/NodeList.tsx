@@ -4,9 +4,9 @@ import {
     Button, Dialog, DialogTitle, DialogContent, Stack, Chip
 } from '@mui/material';
 import { Add, Edit, Delete, Refresh } from '@mui/icons-material';
-import { createNode, deleteNode } from '@/api/nodes';
+import { createNode, updateNode, deleteNode } from '@/api/nodes';
 import NodeForm from './NodeForm';
-import type { SensorNode } from '@/types';
+import type { SensorNode, NodeStatus } from '@/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { NODE_STATUSES } from '@/types';
@@ -16,19 +16,19 @@ interface NodeListProps {
     nodes: SensorNode[];
 }
 
-export default function NodeList({ nodes }: NodeListProps) {
+export default function NodeList({ nodes = [] }: NodeListProps) {
     const queryClient = useQueryClient();
     const [open, setOpen] = useState(false);
     const [editNode, setEditNode] = useState<SensorNode | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+    const [statusFilter, setStatusFilter] = useState<'all' | NodeStatus>('all');
 
     const handleCreate = async (data: {
         name: string;
         location: string;
         latitude?: number;
         longitude?: number;
-        status?: string;
+        status: NodeStatus;
     }) => {
         try {
             await createNode(data);
@@ -36,6 +36,25 @@ export default function NodeList({ nodes }: NodeListProps) {
             setOpen(false);
         } catch (error) {
             console.error('Error creating node:', error);
+            throw error;
+        }
+    };
+
+    const handleUpdate = async (data: {
+        name: string;
+        location: string;
+        latitude?: number;
+        longitude?: number;
+        status: NodeStatus;
+    }) => {
+        if (!editNode) return;
+        try {
+            await updateNode(editNode.nodeId, data);
+            await queryClient.invalidateQueries({ queryKey: ['nodes'] });
+            setOpen(false);
+        } catch (error) {
+            console.error('Error updating node:', error);
+            throw error;
         }
     };
 
@@ -45,6 +64,7 @@ export default function NodeList({ nodes }: NodeListProps) {
             await queryClient.invalidateQueries({ queryKey: ['nodes'] });
         } catch (error) {
             console.error('Error deleting node:', error);
+            throw error;
         }
     };
 
@@ -55,8 +75,7 @@ export default function NodeList({ nodes }: NodeListProps) {
 
         const matchesStatus =
           statusFilter === 'all' ||
-          (statusFilter === 'active' && node.status === 'active') ||
-          (statusFilter === 'inactive' && node.status === 'inactive');
+          node.status === statusFilter;
 
         return matchesSearch && matchesStatus;
     });
@@ -106,20 +125,16 @@ export default function NodeList({ nodes }: NodeListProps) {
                 color="primary"
                 onClick={() => setStatusFilter('all')}
               />
-              <Chip
-                label="Active"
-                clickable
-                variant={statusFilter === 'active' ? 'filled' : 'outlined'}
-                color="primary"
-                onClick={() => setStatusFilter('active')}
-              />
-              <Chip
-                label="Inactive"
-                clickable
-                variant={statusFilter === 'inactive' ? 'filled' : 'outlined'}
-                color="primary"
-                onClick={() => setStatusFilter('inactive')}
-              />
+              {NODE_STATUSES.map((status) => (
+                <Chip
+                  key={status.value}
+                  label={status.label}
+                  clickable
+                  variant={statusFilter === status.value ? 'filled' : 'outlined'}
+                  color="primary"
+                  onClick={() => setStatusFilter(status.value)}
+                />
+              ))}
           </Stack>
 
           <TableContainer component={Paper} elevation={2}>
@@ -177,7 +192,11 @@ export default function NodeList({ nodes }: NodeListProps) {
                                   </Tooltip>
                                   <Tooltip title="Delete">
                                       <IconButton
-                                        onClick={() => handleDelete(node.nodeId)}
+                                        onClick={async () => {
+                                            if (confirm('Are you sure you want to delete this node?')) {
+                                                await handleDelete(node.nodeId);
+                                            }
+                                        }}
                                         size="small"
                                       >
                                           <Delete fontSize="small" color="error" />
@@ -195,7 +214,7 @@ export default function NodeList({ nodes }: NodeListProps) {
               <DialogTitle>{editNode ? 'Edit Node' : 'Create New Node'}</DialogTitle>
               <DialogContent>
                   <NodeForm
-                    onSubmit={handleCreate}
+                    onSubmit={editNode ? handleUpdate : handleCreate}
                     node={editNode}
                     onCancel={() => setOpen(false)}
                   />

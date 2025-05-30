@@ -12,8 +12,7 @@ export default function Layout() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { sidebarOpen, setSidebarOpen } = useAppStore();
-  const { user, isAuthenticated } = useAuthStore();
-  const isDev = import.meta.env.MODE === 'development';
+  const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
     if (isMobile) {
@@ -33,31 +32,26 @@ export default function Layout() {
       <CssBaseline />
       <Navbar />
 
-      <Box sx={{ display: 'flex', flexGrow: 1, width: '100%' }}>
-        {(isAuthenticated || isDev) && <Sidebar />}
+      <Box sx={{ display: 'flex', flexGrow: 1 }}>
+        {isAuthenticated && <Sidebar />}
 
         <Box
           component="main"
           sx={{
             flexGrow: 1,
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            ...(sidebarOpen && !isMobile && (isAuthenticated || isDev) && {
-              ml: '240px',
+            transition: theme.transitions.create('margin', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.leavingScreen,
             }),
+            ...(sidebarOpen && !isMobile && isAuthenticated && {
+              ml: '240px',
+              width: 'calc(100% - 240px)',
+            }),
+            p: { xs: 2, md: 3 },
+            pt: { xs: '80px', md: '96px' },
           }}
         >
-          <Box
-            sx={{
-              flexGrow: 1,
-              px: { xs: 2, md: 3 },
-              pt: { xs: '80px', md: '96px' },
-              pb: 4,
-            }}
-          >
-            <Outlet />
-          </Box>
+          <Outlet />
         </Box>
       </Box>
 

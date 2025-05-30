@@ -1,10 +1,11 @@
-// src/components/readings/ReadingChart.tsx
+import React from 'react';
 import {
   Box,
   CircularProgress,
   Typography,
   Alert,
   Paper,
+  useTheme,
 } from '@mui/material';
 import {
   LineChart,
@@ -16,45 +17,64 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { format } from 'date-fns';
-import { getSensorReadings, getNodeReadings } from '@/api/readings';
-import { SENSOR_TYPES } from '@/types/constants';
+import { format, parseISO } from 'date-fns';
+import { getAllSensorReadings, getAllNodeReadings } from '@/api/readings';
 import { useNotification } from '@/contexts/NotificationContext';
-import React from 'react';
-import type { PaginatedResponse, Reading } from '@/types';
 import { useQuery } from '@tanstack/react-query';
+import type { Reading } from '@/types';
 
 interface ReadingChartProps {
   sensorId?: number;
   nodeId?: number;
-  hours?: number;
 }
 
 interface ChartDataPoint {
   value: number;
   timestamp: string;
+  rawTimestamp: string;
   [key: string]: string | number;
 }
 
-export default function ReadingChart({ sensorId, nodeId, hours = 24 }: ReadingChartProps) {
+const ReadingChart: React.FC<ReadingChartProps> = ({ sensorId, nodeId }) => {
+  const theme = useTheme();
   const { showNotification } = useNotification();
 
-  const queryKey = sensorId
-    ? ['readings', 'sensor', sensorId, hours]
-    : ['readings', 'node', nodeId, hours];
+  const queryKey = React.useMemo(
+    () => (sensorId ? ['readings', 'sensor', sensorId] : ['readings', 'node', nodeId]),
+    [sensorId, nodeId]
+  );
 
-  const queryFn = sensorId
-    ? () => getSensorReadings(sensorId, 0, 100)
-    : () => getNodeReadings(nodeId!, 0, 100);
+  const fetchReadings = async (): Promise<Reading[]> => {
+    try {
+      const readings = sensorId
+        ? await getAllSensorReadings(sensorId)
+        : nodeId
+          ? await getAllNodeReadings(nodeId)
+          : [];
+
+      if (readings.length === 0) {
+        showNotification(
+          `No readings found for ${sensorId ? 'sensor' : 'node'} ${sensorId ?? nodeId}`,
+          'info'
+        );
+      }
+
+      return readings;
+    } catch (error) {
+      console.error('Error fetching readings:', error);
+      throw error;
+    }
+  };
 
   const {
-    data: readingsData,
+    data: readings = [],
     isLoading,
     isError,
     error,
-  } = useQuery<PaginatedResponse<Reading>, Error>({ queryKey, queryFn });
-
-  const readings = readingsData?.content || [];
+  } = useQuery<Reading[], Error>({
+    queryKey,
+    queryFn: fetchReadings,
+  });
 
   React.useEffect(() => {
     if (isError && error) {
@@ -63,15 +83,14 @@ export default function ReadingChart({ sensorId, nodeId, hours = 24 }: ReadingCh
   }, [isError, error, showNotification]);
 
   const chartData: ChartDataPoint[] = React.useMemo(() => {
-    return readings.slice(0, 50).map((reading) => ({
-      ...reading,
-      timestamp: format(new Date(reading.timestamp), 'HH:mm'),
+    return readings.map((reading) => ({
+      value: reading.value,
+      timestamp: format(parseISO(reading.timestamp), 'MMM d, HH:mm'),
+      rawTimestamp: reading.timestamp,
     }));
   }, [readings]);
 
-  const sensorType = sensorId
-    ? SENSOR_TYPES.find((t) => t.id === sensorId)
-    : null;
+  const unit = readings?.[0]?.sensorType?.unit || '';
 
   if (isLoading) {
     return (
@@ -89,49 +108,62 @@ export default function ReadingChart({ sensorId, nodeId, hours = 24 }: ReadingCh
     );
   }
 
+  if (readings.length === 0) {
+    return (
+      <Alert severity="info" sx={{ my: 2 }}>
+        No readings available for {sensorId ? `sensor #${sensorId}` : `node #${nodeId}`}.
+      </Alert>
+    );
+  }
+
   return (
-    <Paper
-      elevation={2}
-      sx={{
-        p: 3,
-        borderRadius: 3,
-        height: 420,
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-        '&:hover': {
-          boxShadow: 6,
-          transform: 'scale(1.01)',
-        },
-      }}
-    >
+    <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: 500 }}>
       <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-        {sensorId ? `${sensorType?.name || 'Sensor'} Readings` : 'Node Readings'} (Last {hours} hours)
+        {sensorId ? `Sensor #${sensorId} Readings` : `Node #${nodeId} Readings`} (All Time)
       </Typography>
       <ResponsiveContainer width="100%" height="85%">
         <LineChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="timestamp" />
+          <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+          <XAxis
+            dataKey="timestamp"
+            tick={{ fontSize: 12 }}
+            label={{ value: 'Time', position: 'insideBottomRight', offset: -5 }}
+            angle={-45}
+            textAnchor="end"
+            height={60}
+          />
           <YAxis
             label={{
-              value: sensorType?.unit || '',
+              value: unit,
               angle: -90,
               position: 'insideLeft',
+              style: { textAnchor: 'middle' },
             }}
           />
           <Tooltip
-            formatter={(value: number) => [`${value} ${sensorType?.unit || ''}`, 'Value']}
+            formatter={(value: number) => [`${value} ${unit}`, 'Value']}
             labelFormatter={(label: string) => `Time: ${label}`}
+            contentStyle={{
+              backgroundColor: theme.palette.background.paper,
+              borderColor: theme.palette.divider,
+              borderRadius: theme.shape.borderRadius,
+            }}
           />
           <Legend />
           <Line
             type="monotone"
             dataKey="value"
-            stroke="#1976d2"
+            stroke={theme.palette.primary.main}
             strokeWidth={2}
+            dot={false}
             activeDot={{ r: 6 }}
-            name={sensorType?.name || 'Value'}
+            name="Value"
+            animationDuration={300}
           />
         </LineChart>
       </ResponsiveContainer>
     </Paper>
   );
-}
+};
+
+export default ReadingChart;
