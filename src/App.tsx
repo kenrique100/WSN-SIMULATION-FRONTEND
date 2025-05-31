@@ -6,7 +6,7 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WebSocketProvider } from '@/contexts/WebSocketContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import Loading from '@/components/common/Loading';
 
