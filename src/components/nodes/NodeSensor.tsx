@@ -1,4 +1,3 @@
-// src/components/nodes/NodeSensors.tsx
 import { useQuery } from '@tanstack/react-query';
 import {
     Box,
@@ -12,21 +11,26 @@ import {
     Button,
     CircularProgress,
     Alert,
-    Typography
+    Typography,
+    IconButton,
+    Tooltip
 } from '@mui/material';
 import { getNodeSensors } from '@/api/nodes';
 import { useParams, Link } from 'react-router-dom';
 import { formatDate } from '@/types/helpers';
 import AddIcon from '@mui/icons-material/Add';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 export default function NodeSensors() {
     const { nodeId } = useParams<{ nodeId: string }>();
     const numericNodeId = nodeId ? parseInt(nodeId, 10) : null;
 
     const {
-        data,
+        data: sensorsData,
         isLoading,
-        error
+        error,
+        refetch,
+        isRefetching
     } = useQuery({
         queryKey: ['nodeSensors', numericNodeId],
         queryFn: () => {
@@ -36,7 +40,7 @@ export default function NodeSensors() {
         enabled: !!numericNodeId
     });
 
-    const sensors = data?.content ?? [];
+    const sensors = sensorsData?.content ?? [];
 
     if (isLoading) {
         return (
@@ -49,23 +53,35 @@ export default function NodeSensors() {
     if (error) {
         return (
           <Alert severity="error" sx={{ mt: 2 }}>
-              Error loading sensors: {error.message}
+              Error loading sensors: {error instanceof Error ? error.message : 'Unknown error'}
           </Alert>
         );
     }
 
     return (
       <Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="subtitle1">Sensors</Typography>
-              <Button
-                component={Link}
-                to={`/nodes/${nodeId}/sensors/new`}
-                variant="contained"
-                startIcon={<AddIcon />}
-              >
-                  Add Sensor
-              </Button>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="subtitle1">Attached Sensors</Typography>
+              <Box>
+                  <Tooltip title="Refresh sensors">
+                      <IconButton
+                        onClick={() => refetch()}
+                        disabled={isRefetching}
+                        sx={{ mr: 1 }}
+                      >
+                          <RefreshIcon />
+                      </IconButton>
+                  </Tooltip>
+                  <Button
+                    component={Link}
+                    to={`/nodes/${nodeId}/sensors/new`}
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    size="small"
+                  >
+                      Add Sensor
+                  </Button>
+              </Box>
           </Box>
 
           {sensors.length === 0 ? (
@@ -77,17 +93,17 @@ export default function NodeSensors() {
                 <Table size="small">
                     <TableHead>
                         <TableRow>
-                            <TableCell>ID</TableCell>
-                            <TableCell>Type</TableCell>
-                            <TableCell>Min Value</TableCell>
-                            <TableCell>Max Value</TableCell>
-                            <TableCell>Calibration Date</TableCell>
-                            <TableCell>Actions</TableCell>
+                            <TableCell><strong>ID</strong></TableCell>
+                            <TableCell><strong>Type</strong></TableCell>
+                            <TableCell><strong>Min Value</strong></TableCell>
+                            <TableCell><strong>Max Value</strong></TableCell>
+                            <TableCell><strong>Calibration Date</strong></TableCell>
+                            <TableCell><strong>Actions</strong></TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {sensors.map((sensor) => (
-                          <TableRow key={sensor.sensorId}>
+                          <TableRow key={sensor.sensorId} hover>
                               <TableCell>{sensor.sensorId}</TableCell>
                               <TableCell>{sensor.typeId}</TableCell>
                               <TableCell>{sensor.minValue ?? 'N/A'}</TableCell>
@@ -98,9 +114,14 @@ export default function NodeSensors() {
                                     : 'N/A'}
                               </TableCell>
                               <TableCell>
-                                  <Link to={`/sensors/${sensor.sensorId}`}>
-                                      <Button size="small">View Details</Button>
-                                  </Link>
+                                  <Button
+                                    component={Link}
+                                    to={`/sensors/${sensor.sensorId}`}
+                                    size="small"
+                                    variant="outlined"
+                                  >
+                                      Details
+                                  </Button>
                               </TableCell>
                           </TableRow>
                         ))}

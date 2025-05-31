@@ -1,4 +1,4 @@
-// src/pages/readings/index.tsx
+// pages/readings/index.tsx
 import React, { useState } from 'react';
 import { Tabs, Tab, Box, useTheme, Paper } from '@mui/material';
 import { useParams } from 'react-router-dom';
@@ -10,7 +10,7 @@ import PageWrapper from '@/components/layout/PageWrapper';
 import { Timeline, ShowChart, TableChart } from '@mui/icons-material';
 
 const ReadingsPage: React.FC = () => {
-  const { sensorId, nodeId } = useParams<{ sensorId?: string; nodeId?: string }>();
+  const { sensorId } = useParams<{ sensorId?: string }>();
   const [tabValue, setTabValue] = useState(0);
   const theme = useTheme();
 
@@ -20,7 +20,6 @@ const ReadingsPage: React.FC = () => {
 
   const getPageTitle = () => {
     if (sensorId) return `Sensor #${sensorId} Readings`;
-    if (nodeId) return `Node #${nodeId} Readings`;
     return 'All Readings';
   };
 
@@ -32,7 +31,6 @@ const ReadingsPage: React.FC = () => {
           { label: 'Dashboard', href: '/' },
           { label: 'Readings', href: '/readings' },
           ...(sensorId ? [{ label: `Sensor ${sensorId}` }] : []),
-          ...(nodeId ? [{ label: `Node ${nodeId}` }] : []),
         ]}
       />
 
@@ -106,21 +104,18 @@ const ReadingsPage: React.FC = () => {
         {tabValue === 0 && (
           <ReadingsList
             sensorId={sensorId ? parseInt(sensorId) : undefined}
-            nodeId={nodeId ? parseInt(nodeId) : undefined}
           />
         )}
 
         {tabValue === 1 && (
           <ReadingChart
             sensorId={sensorId ? parseInt(sensorId) : undefined}
-            nodeId={nodeId ? parseInt(nodeId) : undefined}
           />
         )}
 
         {tabValue === 2 && (
           <ReadingStats
             sensorId={sensorId ? parseInt(sensorId) : undefined}
-            nodeId={nodeId ? parseInt(nodeId) : undefined}
           />
         )}
       </Box>

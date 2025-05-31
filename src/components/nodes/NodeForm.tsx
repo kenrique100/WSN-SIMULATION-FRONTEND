@@ -1,4 +1,3 @@
-// src/components/nodes/NodeForm.tsx
 import {
     Box,
     TextField,
@@ -7,7 +6,8 @@ import {
     FormControl,
     InputLabel,
     Select,
-    MenuItem
+    MenuItem,
+    Grid
 } from '@mui/material';
 import React, { useState } from 'react';
 import type { SensorNode } from '@/types';
@@ -74,63 +74,85 @@ export default function NodeForm({ onSubmit, onCancel, node }: NodeFormProps) {
     return (
       <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
           <Stack spacing={3}>
-              <TextField
-                required
-                fullWidth
-                label="Node Name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-              />
+              <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                      <TextField
+                        required
+                        fullWidth
+                        label="Node Name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                      />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                      <FormControl fullWidth>
+                          <InputLabel>Status</InputLabel>
+                          <Select
+                            required
+                            label="Status"
+                            name="status"
+                            value={formData.status}
+                            onChange={handleStatusChange}
+                          >
+                              {NODE_STATUSES.map((status) => (
+                                <MenuItem key={status.value} value={status.value}>
+                                    {status.label}
+                                </MenuItem>
+                              ))}
+                          </Select>
+                      </FormControl>
+                  </Grid>
+              </Grid>
 
               <TextField
                 required
                 fullWidth
-                label="Location"
+                label="Location Description"
                 name="location"
                 value={formData.location}
                 onChange={handleChange}
               />
 
-              <TextField
-                fullWidth
-                label="Latitude"
-                name="latitude"
-                type="number"
-                value={formData.latitude ?? ''}
-                onChange={handleNumberChange}
-                inputProps={{ step: "0.000001" }}
-              />
+              <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Latitude"
+                        name="latitude"
+                        type="number"
+                        value={formData.latitude ?? ''}
+                        onChange={handleNumberChange}
+                        inputProps={{
+                            step: "0.000001",
+                            min: "-90",
+                            max: "90"
+                        }}
+                      />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Longitude"
+                        name="longitude"
+                        type="number"
+                        value={formData.longitude ?? ''}
+                        onChange={handleNumberChange}
+                        inputProps={{
+                            step: "0.000001",
+                            min: "-180",
+                            max: "180"
+                        }}
+                      />
+                  </Grid>
+              </Grid>
 
-              <TextField
-                fullWidth
-                label="Longitude"
-                name="longitude"
-                type="number"
-                value={formData.longitude ?? ''}
-                onChange={handleNumberChange}
-                inputProps={{ step: "0.000001" }}
-              />
-
-              <FormControl fullWidth>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    required
-                    label="Status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleStatusChange}
+              <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 2 }}>
+                  <Button
+                    onClick={onCancel}
+                    disabled={isSubmitting}
+                    variant="outlined"
                   >
-                      {NODE_STATUSES.map((status) => (
-                        <MenuItem key={status.value} value={status.value}>
-                            {status.label}
-                        </MenuItem>
-                      ))}
-                  </Select>
-              </FormControl>
-
-              <Stack direction="row" spacing={2} justifyContent="flex-end">
-                  <Button onClick={onCancel} disabled={isSubmitting}>
                       Cancel
                   </Button>
                   <Button
@@ -138,7 +160,7 @@ export default function NodeForm({ onSubmit, onCancel, node }: NodeFormProps) {
                     variant="contained"
                     disabled={isSubmitting}
                   >
-                      {isSubmitting ? 'Saving...' : 'Save'}
+                      {isSubmitting ? 'Saving...' : 'Save Node'}
                   </Button>
               </Stack>
           </Stack>

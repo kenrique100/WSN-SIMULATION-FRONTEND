@@ -2,9 +2,19 @@ import apiClient from './apiClient';
 import type { SensorNode, NodeSensor, NodeStats, PaginatedResponse } from '@/types';
 
 export const getNodes = async (
-  params: { page?: number; size?: number } = {}
+  params: {
+    page?: number;
+    size?: number;
+    sort?: string;
+  } = {}
 ): Promise<PaginatedResponse<SensorNode>> => {
-  const response = await apiClient.get('/nodes', { params });
+  const response = await apiClient.get('/nodes', {
+    params: {
+      page: params.page || 0,
+      size: params.size || 10,
+      sort: params.sort || 'lastModified,desc'
+    }
+  });
   return response.data;
 };
 
@@ -22,7 +32,12 @@ export const getNodeSensors = async (
   nodeId: number,
   params: { page?: number; size?: number } = {}
 ): Promise<PaginatedResponse<NodeSensor>> => {
-  const response = await apiClient.get(`/nodes/${nodeId}/sensors`, { params });
+  const response = await apiClient.get(`/nodes/${nodeId}/sensors`, {
+    params: {
+      page: params.page || 0,
+      size: params.size || 10
+    }
+  });
   return response.data;
 };
 

@@ -9,12 +9,28 @@ import {
   MenuItem,
   Button
 } from '@mui/material';
+import { useTheme } from '@/contexts/ThemeContext'; // adjust the import path as needed
 import { useState } from 'react';
 
 export default function PreferencesForm() {
-  const [theme, setTheme] = useState('light');
+  const { mode, toggleTheme } = useTheme();
   const [notifications, setNotifications] = useState(true);
   const [language, setLanguage] = useState('en');
+
+  const handleThemeChange = (e: any) => {
+    const newTheme = e.target.value;
+    if (newTheme === 'light' || newTheme === 'dark') {
+      if (mode !== newTheme) {
+        toggleTheme();
+      }
+    } else if (newTheme === 'system') {
+      // Implement system default detection if needed
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if ((prefersDark && mode !== 'dark') || (!prefersDark && mode !== 'light')) {
+        toggleTheme();
+      }
+    }
+  };
 
   return (
     <Box>
@@ -29,8 +45,8 @@ export default function PreferencesForm() {
         <Box>
           <Typography fontWeight="500" mb={2}>Theme</Typography>
           <Select
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
+            value={mode}
+            onChange={handleThemeChange}
             fullWidth
             sx={{ maxWidth: 300 }}
           >

@@ -20,6 +20,7 @@ interface AuthState {
   initializeAuth: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
   hasRole: (role: Role) => boolean;
+  setUser: (user: UserResponse | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -30,6 +31,7 @@ export const useAuthStore = create<AuthState>()(
     isLoading: false,
     error: null,
     initialized: false,
+    setUser: (user) => set({ user }),
 
     login: async (username, password) => {
       set({ isLoading: true, error: null });

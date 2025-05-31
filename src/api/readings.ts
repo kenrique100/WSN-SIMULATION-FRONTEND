@@ -100,7 +100,6 @@ export const getAllNodeReadings = async (
     }
 };
 
-// ... rest of the file remains the same ...
 export const createReading = async (
   sensorId: number,
   value: number

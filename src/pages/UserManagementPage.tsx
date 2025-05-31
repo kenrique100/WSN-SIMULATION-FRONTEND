@@ -9,7 +9,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Typography,
   TextField,
   Dialog,
   DialogActions,
@@ -24,51 +23,57 @@ import {
   Snackbar,
   Chip,
   IconButton,
-  useTheme
+  useTheme,
+  Pagination
 } from '@mui/material';
 import { Role, UserResponse } from '@/types';
-import { createUser, getAllUsers, activateUser, deactivateUser } from '@/api/auth';
+import {
+  createUser,
+  getAllUsers,
+  updateUserStatus,
+  deleteUser,
+  updateUser
+} from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
 import PageWrapper from '@/components/layout/PageWrapper';
 import PageHeader from '@/components/common/PageHeader';
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
-
-interface User extends UserResponse {
-  enabled: boolean;
-}
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import UserEditDialog from '@/components/settings/UserEditDialog';
 
 const UserManagementPage: React.FC = () => {
   const theme = useTheme();
-  const { user, logout, hasRole } = useAuthStore();
-  const [users, setUsers] = useState<User[]>([]);
+  const { user, hasRole } = useAuthStore();
+  const [users, setUsers] = useState<UserResponse[]>([]);
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserResponse | null>(null);
   const [newUser, setNewUser] = useState({
     username: '',
     email: '',
     password: '',
+    name: '',
     role: Role.VIEWER
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(0);
 
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const usersData = await getAllUsers();
-      const mappedUsers = usersData.map(user => ({
-        ...user,
-        enabled: user.enabled ?? true
-      }));
-      setUsers(mappedUsers);
+      const users = await getAllUsers(page, size);
+      setUsers(users);
+      setTotalPages(Math.ceil(users.length / size) || 1);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch users';
       setError(errorMessage);
-      if (errorMessage.includes('Unauthorized')) {
-        await logout();
-      }
     } finally {
       setIsLoading(false);
     }
@@ -76,22 +81,30 @@ const UserManagementPage: React.FC = () => {
 
   useEffect(() => {
     if (hasRole(Role.ADMIN)) {
-      void fetchUsers();
+      const loadUsers = async () => {
+        try {
+          await fetchUsers();
+        } catch (error) {
+          console.error('Failed to fetch users:', error);
+        }
+      };
+      loadUsers();
     }
-  }, [user]);
+  }, [page, size, user, hasRole]);
 
   const handleCreateUser = async () => {
     setIsLoading(true);
     try {
-      const createdUser = await createUser(newUser);
+      await createUser(newUser);
       setOpenCreateDialog(false);
-      setSnackbarMessage(`User ${createdUser.username} created successfully`);
+      setSnackbarMessage(`User ${newUser.username} created successfully`);
       setSnackbarOpen(true);
       await fetchUsers();
       setNewUser({
         username: '',
         email: '',
         password: '',
+        name: '',
         role: Role.VIEWER
       });
     } catch (err) {
@@ -102,26 +115,49 @@ const UserManagementPage: React.FC = () => {
     }
   };
 
-  const handleActivateUser = async (userId: number) => {
+  const handleStatusChange = async (userId: number, active: boolean) => {
     try {
-      await activateUser(userId);
-      setSnackbarMessage('User activated successfully');
+      await updateUserStatus(userId, active);
+      setSnackbarMessage(`User ${active ? 'activated' : 'deactivated'} successfully`);
       setSnackbarOpen(true);
       await fetchUsers();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to activate user';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update user status';
       setError(errorMessage);
     }
   };
 
-  const handleDeactivateUser = async (userId: number) => {
+  const handleDeleteUser = async (userId: number) => {
     try {
-      await deactivateUser(userId);
-      setSnackbarMessage('User deactivated successfully');
+      await deleteUser(userId);
+      setSnackbarMessage('User deleted successfully');
       setSnackbarOpen(true);
       await fetchUsers();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to deactivate user';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete user';
+      setError(errorMessage);
+    }
+  };
+
+  const handleEditUser = (user: UserResponse) => {
+    setSelectedUser(user);
+    setOpenEditDialog(true);
+  };
+
+  const handleSaveUser = async (updatedUser: UserResponse) => {
+    try {
+      await updateUser(updatedUser.userId, {
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        avatarUrl: updatedUser.avatarUrl
+      });
+      setSnackbarMessage('User updated successfully');
+      setSnackbarOpen(true);
+      setOpenEditDialog(false);
+      await fetchUsers();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update user';
       setError(errorMessage);
     }
   };
@@ -179,75 +215,85 @@ const UserManagementPage: React.FC = () => {
             <CircularProgress />
           </Box>
         ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow sx={{ backgroundColor: theme.palette.background.default }}>
-                  <TableCell sx={{ fontWeight: 600 }}>Username</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow
-                    key={user.userId}
-                    hover
-                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                  >
-                    <TableCell>{user.username}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={user.role}
-                        color={
-                          user.role === Role.ADMIN
-                            ? 'primary'
-                            : user.role === Role.OPERATOR
-                              ? 'secondary'
-                              : 'default'
-                        }
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={user.enabled ? 'Active' : 'Inactive'}
-                        color={user.enabled ? 'success' : 'error'}
-                        variant="outlined"
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {user.enabled ? (
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          size="small"
-                          onClick={() => void handleDeactivateUser(user.userId)}
-                          disabled={isLoading}
-                        >
-                          Deactivate
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outlined"
-                          color="success"
-                          size="small"
-                          onClick={() => void handleActivateUser(user.userId)}
-                          disabled={isLoading}
-                        >
-                          Activate
-                        </Button>
-                      )}
-                    </TableCell>
+          <>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: theme.palette.background.default }}>
+                    <TableCell sx={{ fontWeight: 600 }}>Username</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow
+                      key={user.userId}
+                      hover
+                      sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                    >
+                      <TableCell>{user.username}</TableCell>
+                      <TableCell>{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={user.role}
+                          color={
+                            user.role === Role.ADMIN
+                              ? 'primary'
+                              : user.role === Role.OPERATOR
+                                ? 'secondary'
+                                : 'default'
+                          }
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={user.enabled ? 'Active' : 'Inactive'}
+                          color={user.enabled ? 'success' : 'error'}
+                          variant="outlined"
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" gap={1}>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            color={user.enabled ? 'error' : 'success'}
+                            onClick={() => handleStatusChange(user.userId, !user.enabled)}
+                          >
+                            {user.enabled ? (
+                              <DeleteIcon fontSize="small" />
+                            ) : (
+                              <RefreshIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <Box display="flex" justifyContent="center" mt={3}>
+              <Pagination
+                count={totalPages}
+                page={page + 1}
+                onChange={(_, newPage) => setPage(newPage - 1)}
+                color="primary"
+              />
+            </Box>
+          </>
         )}
       </Paper>
 
@@ -268,6 +314,15 @@ const UserManagementPage: React.FC = () => {
             onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
             disabled={isLoading}
             required
+          />
+          <TextField
+            margin="normal"
+            label="Name"
+            type="text"
+            fullWidth
+            value={newUser.name}
+            onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+            disabled={isLoading}
           />
           <TextField
             margin="normal"
@@ -308,15 +363,29 @@ const UserManagementPage: React.FC = () => {
             Cancel
           </Button>
           <Button
-            onClick={() => void handleCreateUser()}
+            onClick={handleCreateUser}
             color="primary"
             variant="contained"
-            disabled={isLoading || !newUser.username || !newUser.email || !newUser.password}
+            disabled={
+              isLoading ||
+              !newUser.username ||
+              !newUser.email ||
+              !newUser.password
+            }
           >
             {isLoading ? 'Creating...' : 'Create User'}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {selectedUser && (
+        <UserEditDialog
+          open={openEditDialog}
+          onClose={() => setOpenEditDialog(false)}
+          user={selectedUser}
+          onSave={handleSaveUser}
+        />
+      )}
 
       <Snackbar
         open={snackbarOpen}

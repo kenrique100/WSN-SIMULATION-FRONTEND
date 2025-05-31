@@ -1,3 +1,4 @@
+// components/readings/ReadingChart.tsx
 import React from 'react';
 import {
   Box,
@@ -18,14 +19,13 @@ import {
   Legend,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
-import { getAllSensorReadings, getAllNodeReadings } from '@/api/readings';
+import { getAllSensorReadings } from '@/api/readings';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useQuery } from '@tanstack/react-query';
 import type { Reading } from '@/types';
 
 interface ReadingChartProps {
   sensorId?: number;
-  nodeId?: number;
 }
 
 interface ChartDataPoint {
@@ -35,26 +35,24 @@ interface ChartDataPoint {
   [key: string]: string | number;
 }
 
-const ReadingChart: React.FC<ReadingChartProps> = ({ sensorId, nodeId }) => {
+const ReadingChart: React.FC<ReadingChartProps> = ({ sensorId }) => {
   const theme = useTheme();
   const { showNotification } = useNotification();
 
   const queryKey = React.useMemo(
-    () => (sensorId ? ['readings', 'sensor', sensorId] : ['readings', 'node', nodeId]),
-    [sensorId, nodeId]
+    () => ['readings', 'sensor', sensorId],
+    [sensorId]
   );
 
   const fetchReadings = async (): Promise<Reading[]> => {
     try {
-      const readings = sensorId
-        ? await getAllSensorReadings(sensorId)
-        : nodeId
-          ? await getAllNodeReadings(nodeId)
-          : [];
+      if (!sensorId) return [];
+
+      const readings = await getAllSensorReadings(sensorId);
 
       if (readings.length === 0) {
         showNotification(
-          `No readings found for ${sensorId ? 'sensor' : 'node'} ${sensorId ?? nodeId}`,
+          `No readings found for sensor ${sensorId}`,
           'info'
         );
       }
@@ -74,6 +72,7 @@ const ReadingChart: React.FC<ReadingChartProps> = ({ sensorId, nodeId }) => {
   } = useQuery<Reading[], Error>({
     queryKey,
     queryFn: fetchReadings,
+    enabled: !!sensorId
   });
 
   React.useEffect(() => {
@@ -91,6 +90,14 @@ const ReadingChart: React.FC<ReadingChartProps> = ({ sensorId, nodeId }) => {
   }, [readings]);
 
   const unit = readings?.[0]?.sensorType?.unit || '';
+
+  if (!sensorId) {
+    return (
+      <Alert severity="info" sx={{ my: 2 }}>
+        Please select a sensor to view readings
+      </Alert>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -111,7 +118,7 @@ const ReadingChart: React.FC<ReadingChartProps> = ({ sensorId, nodeId }) => {
   if (readings.length === 0) {
     return (
       <Alert severity="info" sx={{ my: 2 }}>
-        No readings available for {sensorId ? `sensor #${sensorId}` : `node #${nodeId}`}.
+        No readings available for sensor #{sensorId}.
       </Alert>
     );
   }
@@ -119,7 +126,7 @@ const ReadingChart: React.FC<ReadingChartProps> = ({ sensorId, nodeId }) => {
   return (
     <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: 500 }}>
       <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-        {sensorId ? `Sensor #${sensorId} Readings` : `Node #${nodeId} Readings`} (All Time)
+        Sensor #{sensorId} Readings (All Time)
       </Typography>
       <ResponsiveContainer width="100%" height="85%">
         <LineChart data={chartData}>

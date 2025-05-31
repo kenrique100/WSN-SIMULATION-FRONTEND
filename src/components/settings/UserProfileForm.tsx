@@ -6,27 +6,34 @@ import {
   Stack,
   Avatar,
   Divider,
-  IconButton
+  IconButton,
+  Alert
 } from '@mui/material';
 import { CameraAlt } from '@mui/icons-material';
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { updateProfile } from '@/api/auth';
 
 export default function UserProfileForm() {
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const [editableUser, setEditableUser] = useState({
     name: user?.name || '',
-    email: user?.email || ''
+    email: user?.email || '',
+    avatarUrl: user?.avatarUrl || ''
   });
-  const [avatar, setAvatar] = useState(user?.avatarUrl || '');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
-          setAvatar(event.target.result as string);
+          setEditableUser({
+            ...editableUser,
+            avatarUrl: event.target.result as string
+          });
         }
       };
       reader.readAsDataURL(e.target.files[0]);
@@ -37,7 +44,18 @@ export default function UserProfileForm() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Submit logic here
+      const updatedUser = await updateProfile({
+        name: editableUser.name,
+        email: editableUser.email,
+        avatarUrl: editableUser.avatarUrl
+      });
+      setUser(updatedUser);
+      setSuccess('Profile updated successfully');
+      setError('');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
+      setError(errorMessage);
+      setSuccess('');
     } finally {
       setIsLoading(false);
     }
@@ -52,11 +70,23 @@ export default function UserProfileForm() {
         Update your personal details and profile picture
       </Typography>
 
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess('')}>
+          {success}
+        </Alert>
+      )}
+
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={4} mb={4}>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Box sx={{ position: 'relative' }}>
             <Avatar
-              src={avatar}
+              src={editableUser.avatarUrl}
               sx={{
                 width: 120,
                 height: 120,
@@ -96,7 +126,10 @@ export default function UserProfileForm() {
               fullWidth
               label="Full Name"
               value={editableUser.name}
-              onChange={(e) => setEditableUser({...editableUser, name: e.target.value})}
+              onChange={(e) => setEditableUser({
+                ...editableUser,
+                name: e.target.value
+              })}
               variant="outlined"
             />
             <TextField
@@ -104,8 +137,12 @@ export default function UserProfileForm() {
               label="Email"
               type="email"
               value={editableUser.email}
-              onChange={(e) => setEditableUser({...editableUser, email: e.target.value})}
+              onChange={(e) => setEditableUser({
+                ...editableUser,
+                email: e.target.value
+              })}
               variant="outlined"
+              required
             />
           </Stack>
         </Box>
@@ -117,7 +154,12 @@ export default function UserProfileForm() {
         <Button
           variant="contained"
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading ||
+            (!editableUser.name && !editableUser.email && !editableUser.avatarUrl) ||
+            (editableUser.name === user?.name &&
+              editableUser.email === user?.email &&
+              editableUser.avatarUrl === user?.avatarUrl)
+          }
           sx={{ px: 4, py: 1.5 }}
         >
           {isLoading ? 'Saving...' : 'Save Changes'}

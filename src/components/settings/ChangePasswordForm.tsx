@@ -8,6 +8,7 @@ import {
   Divider
 } from '@mui/material';
 import React, { useState } from 'react';
+import { changePassword } from '@/api/auth';
 
 export default function ChangePasswordForm() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -19,11 +20,27 @@ export default function ChangePasswordForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Validation and submission logic
+      await changePassword({
+        currentPassword,
+        newPassword
+      });
+      setSuccess('Password changed successfully');
+      setError('');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
     } catch (err) {
-      setError('Failed to change password');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to change password';
+      setError(errorMessage);
+      setSuccess('');
     } finally {
       setIsLoading(false);
     }
@@ -58,6 +75,7 @@ export default function ChangePasswordForm() {
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
           variant="outlined"
+          required
         />
 
         <TextField
@@ -68,6 +86,7 @@ export default function ChangePasswordForm() {
           onChange={(e) => setNewPassword(e.target.value)}
           variant="outlined"
           helperText="Minimum 8 characters with at least one number and special character"
+          required
         />
 
         <TextField
@@ -77,19 +96,17 @@ export default function ChangePasswordForm() {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           variant="outlined"
+          required
         />
       </Stack>
 
       <Divider sx={{ my: 4 }} />
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="body2" color="text.secondary">
-          Last changed: 3 months ago
-        </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Button
           variant="contained"
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || !currentPassword || !newPassword || !confirmPassword}
           sx={{ px: 4, py: 1.5 }}
         >
           {isLoading ? 'Updating...' : 'Update Password'}

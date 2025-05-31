@@ -1,12 +1,25 @@
-// src/pages/nodes/[nodeId].tsx
-import { Box, Typography, CircularProgress, Alert, Button } from '@mui/material';
+import {
+  Box,
+  Typography,
+  CircularProgress,
+  Alert,
+  Button,
+  Grid,
+  Card,
+  CardContent,
+  Divider
+} from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { getNodeById } from '@/api/nodes';
 import PageWrapper from '@/components/layout/PageWrapper';
 import PageHeader from '@/components/common/PageHeader';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import NodeSensors from '@/components/nodes/NodeSensor';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import PublicIcon from '@mui/icons-material/Public';
+import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
+import NodeSensors from './NodeSensor';
 
 export default function NodeDetail() {
   const { nodeId } = useParams<{ nodeId: string }>();
@@ -98,40 +111,70 @@ export default function NodeDetail() {
         }
       />
 
-      <Box sx={{ p: 3, mb: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
-        <Typography variant="h6" gutterBottom>Node Information</Typography>
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 3 }}>
-          <Box>
-            <Typography variant="subtitle2">Location</Typography>
-            <Typography>{node.location}</Typography>
-          </Box>
-          <Box>
-            <Typography variant="subtitle2">Status</Typography>
-            <Typography>{node.status}</Typography>
-          </Box>
-          <Box>
-            <Typography variant="subtitle2">Coordinates</Typography>
-            <Typography>
-              {node.latitude && node.longitude
-                ? `${node.latitude.toFixed(6)}, ${node.longitude.toFixed(6)}`
-                : 'Not specified'}
-            </Typography>
-          </Box>
-          <Box>
-            <Typography variant="subtitle2">Last Heartbeat</Typography>
-            <Typography>
-              {node.lastHeartbeat
-                ? new Date(node.lastHeartbeat).toLocaleString()
-                : 'Never'}
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Node Information
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
 
-      <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
-        <Typography variant="h6" gutterBottom>Attached Sensors</Typography>
-        <NodeSensors />
-      </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <LocationOnIcon color="primary" sx={{ mr: 1 }} />
+                <Box>
+                  <Typography variant="subtitle2">Location</Typography>
+                  <Typography>{node.location}</Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <PowerSettingsNewIcon color="primary" sx={{ mr: 1 }} />
+                <Box>
+                  <Typography variant="subtitle2">Status</Typography>
+                  <Typography>{node.status}</Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <PublicIcon color="primary" sx={{ mr: 1 }} />
+                <Box>
+                  <Typography variant="subtitle2">Coordinates</Typography>
+                  <Typography>
+                    {node.latitude && node.longitude
+                      ? `${node.latitude.toFixed(6)}, ${node.longitude.toFixed(6)}`
+                      : 'Not specified'}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <AccessTimeIcon color="primary" sx={{ mr: 1 }} />
+                <Box>
+                  <Typography variant="subtitle2">Last Heartbeat</Typography>
+                  <Typography>
+                    {node.lastHeartbeat
+                      ? new Date(node.lastHeartbeat).toLocaleString()
+                      : 'Never'}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Node Sensors
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              <NodeSensors />
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </PageWrapper>
   );
 }

@@ -1,4 +1,3 @@
-// src/pages/nodes/index.tsx
 import {
   Box,
   Tabs,
@@ -10,37 +9,48 @@ import {
   useTheme,
   Chip,
   IconButton,
-  Tooltip
+  Tooltip,
+  Pagination
 } from '@mui/material';
 import React, { useState } from 'react';
 import NodeList from '@/components/nodes/NodeList';
 import NodeMap from '@/components/nodes/NodeMap';
 import PageHeader from '@/components/common/PageHeader';
 import { useQuery } from '@tanstack/react-query';
-import { getNodes } from '@/api/nodes';
+import { getNodes, getNodeStatusStats } from '@/api/nodes';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PageWrapper from '@/components/layout/PageWrapper';
 import { TableChart, Map } from '@mui/icons-material';
-import type { SensorNode } from '@/types';
 
 export default function Nodes() {
   const theme = useTheme();
   const [tabValue, setTabValue] = useState(0);
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(10);
 
   const {
-    data: nodes = [],
+    data: nodesData,
     isLoading,
     isError,
     error,
     refetch,
     isRefetching
-  } = useQuery<SensorNode[]>({
-    queryKey: ['nodes'],
-    queryFn: () => getNodes().then(res => Array.isArray(res.content) ? res.content : []),
+  } = useQuery({
+    queryKey: ['nodes', page, size],
+    queryFn: () => getNodes({ page, size, sort: 'lastModified,desc' }),
+  });
+
+  const { data: stats } = useQuery({
+    queryKey: ['nodeStats'],
+    queryFn: getNodeStatusStats,
   });
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+  };
+
+  const handlePageChange = (_: React.ChangeEvent<unknown>, newPage: number) => {
+    setPage(newPage - 1); // MUI Pagination is 1-based, API is 0-based
   };
 
   if (isLoading) {
@@ -91,12 +101,14 @@ export default function Nodes() {
         ]}
         action={
           <Box display="flex" alignItems="center">
-            <Chip
-              label={`${nodes.length} Nodes`}
-              color="primary"
-              variant="outlined"
-              sx={{ mr: 2 }}
-            />
+            {stats && (
+              <Chip
+                label={`${stats.totalNodes} Nodes (${stats.activeNodes} active)`}
+                color="primary"
+                variant="outlined"
+                sx={{ mr: 2 }}
+              />
+            )}
             <Tooltip title="Refresh data">
               <IconButton onClick={() => refetch()} disabled={isRefetching}>
                 <RefreshIcon />
@@ -106,13 +118,7 @@ export default function Nodes() {
         }
       />
 
-      <Paper
-        sx={{
-          mb: 3,
-          borderRadius: theme.shape.borderRadius,
-          boxShadow: theme.shadows[1],
-        }}
-      >
+      <Paper sx={{ mb: 3, borderRadius: theme.shape.borderRadius, boxShadow: theme.shadows[1] }}>
         <Tabs
           value={tabValue}
           onChange={handleTabChange}
@@ -152,17 +158,23 @@ export default function Nodes() {
         </Tabs>
       </Paper>
 
-      <Box
-        sx={{
-          mt: 2,
-          p: 3,
-          backgroundColor: theme.palette.background.paper,
-          borderRadius: theme.shape.borderRadius,
-          boxShadow: theme.shadows[1],
-        }}
-      >
-        {tabValue === 0 && <NodeList nodes={nodes} />}
-        {tabValue === 1 && <NodeMap nodes={nodes} />}
+      <Box sx={{ mt: 2 }}>
+        {tabValue === 0 && nodesData && (
+          <>
+            <NodeList nodes={nodesData.content} />
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Pagination
+                count={nodesData.totalPages}
+                page={page + 1}
+                onChange={handlePageChange}
+                color="primary"
+                showFirstButton
+                showLastButton
+              />
+            </Box>
+          </>
+        )}
+        {tabValue === 1 && nodesData && <NodeMap nodes={nodesData.content} />}
       </Box>
     </PageWrapper>
   );

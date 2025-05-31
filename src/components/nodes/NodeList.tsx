@@ -1,7 +1,23 @@
 import {
-    Box, Typography, Table, TableBody, TableCell, TableContainer,
-    TableHead, TableRow, Paper, IconButton, Tooltip, TextField,
-    Button, Dialog, DialogTitle, DialogContent, Stack, Chip
+    Box,
+    Typography,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    IconButton,
+    Tooltip,
+    TextField,
+    Button,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    Stack,
+    Chip,
+    Link
 } from '@mui/material';
 import { Add, Edit, Delete, Refresh } from '@mui/icons-material';
 import { createNode, updateNode, deleteNode } from '@/api/nodes';
@@ -11,6 +27,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { NODE_STATUSES } from '@/types';
 import { getStatusColor } from '@/types/helpers';
+import { Link as RouterLink } from 'react-router-dom';
 
 interface NodeListProps {
     nodes: SensorNode[];
@@ -158,7 +175,15 @@ export default function NodeList({ nodes = [] }: NodeListProps) {
                       ) : (
                         filteredNodes.map((node) => (
                           <TableRow key={node.nodeId} hover>
-                              <TableCell>{node.name}</TableCell>
+                              <TableCell>
+                                  <Link
+                                    component={RouterLink}
+                                    to={`/nodes/${node.nodeId}`}
+                                    sx={{ textDecoration: 'none', color: 'inherit' }}
+                                  >
+                                      {node.name}
+                                  </Link>
+                              </TableCell>
                               <TableCell>{node.location}</TableCell>
                               <TableCell>
                                   <Box sx={{ display: 'flex', alignItems: 'center' }}>

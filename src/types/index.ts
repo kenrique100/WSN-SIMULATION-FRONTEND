@@ -31,6 +31,13 @@ export interface UserCreateRequest {
     role: Role;
 }
 
+export interface UserUpdateRequest {
+    name?: string;
+    email?: string;
+    role?: Role;
+    avatarUrl?: string;
+}
+
 export interface LoginRequest {
     username: string;
     password: string;
@@ -44,6 +51,8 @@ export interface SensorNode {
     longitude?: number;
     status: NodeStatus;
     lastHeartbeat?: string;
+    createdAt?: string;
+    lastModified?: string;
 }
 
 export interface NodeSensor {

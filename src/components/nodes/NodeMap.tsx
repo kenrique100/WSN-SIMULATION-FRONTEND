@@ -1,4 +1,3 @@
-// src/components/nodes/NodeMap.tsx
 import { Box, Typography } from '@mui/material';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -49,7 +48,8 @@ export default function NodeMap({ nodes = [] }: NodeMapProps) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        border: '1px solid #ddd'
+        border: '1px solid #ddd',
+        borderRadius: 1
       }}>
         <Typography>No nodes available to display on map</Typography>
       </Box>
@@ -57,7 +57,7 @@ export default function NodeMap({ nodes = [] }: NodeMapProps) {
   }
 
   return (
-    <Box sx={{ height: 400, width: '100%' }}>
+    <Box sx={{ height: 400, width: '100%', borderRadius: 1, overflow: 'hidden' }}>
       <MapContainer
         center={[51.505, -0.09]}
         zoom={2}
@@ -77,12 +77,12 @@ export default function NodeMap({ nodes = [] }: NodeMapProps) {
               icon={defaultIcon}
             >
               <Popup>
-                <Box>
-                  <Typography variant="subtitle1">{node.name}</Typography>
-                  <Typography>Location: {node.location}</Typography>
-                  <Typography>Status: {node.status}</Typography>
+                <Box sx={{ p: 1 }}>
+                  <Typography variant="subtitle1" fontWeight="bold">{node.name}</Typography>
+                  <Typography variant="body2">Location: {node.location}</Typography>
+                  <Typography variant="body2">Status: {node.status}</Typography>
                   {node.lastHeartbeat && (
-                    <Typography>
+                    <Typography variant="body2">
                       Last heartbeat: {new Date(node.lastHeartbeat).toLocaleString()}
                     </Typography>
                   )}

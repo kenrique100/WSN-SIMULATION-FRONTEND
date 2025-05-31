@@ -1,3 +1,4 @@
+// components/readings/ReadingsList.tsx
 import React, { useState } from 'react';
 import {
   Box,
@@ -22,7 +23,7 @@ import { formatDate } from '@/types/helpers';
 import { useNotification } from '@/contexts/NotificationContext';
 import type { Reading, PaginatedResponse } from '@/types';
 
-const ReadingsList: React.FC<{ sensorId?: number; nodeId?: number }> = ({ sensorId, nodeId }) => {
+const ReadingsList: React.FC<{ sensorId?: number }> = ({ sensorId }) => {
   const queryClient = useQueryClient();
   const { showNotification } = useNotification();
   const [page, setPage] = useState(0);
@@ -33,7 +34,7 @@ const ReadingsList: React.FC<{ sensorId?: number; nodeId?: number }> = ({ sensor
     value: '',
   });
 
-  const queryKey = ['readings', { page, size: rowsPerPage, sensorId, nodeId }];
+  const queryKey = ['readings', { page, size: rowsPerPage, sensorId }];
 
   const {
     data,
@@ -42,7 +43,7 @@ const ReadingsList: React.FC<{ sensorId?: number; nodeId?: number }> = ({ sensor
     error,
   } = useQuery<PaginatedResponse<Reading>, Error>({
     queryKey,
-    queryFn: () => getReadings({ page, size: rowsPerPage, sensorId, nodeId }),
+    queryFn: () => getReadings({ page, size: rowsPerPage, sensorId }),
   });
 
   React.useEffect(() => {
@@ -100,7 +101,7 @@ const ReadingsList: React.FC<{ sensorId?: number; nodeId?: number }> = ({ sensor
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
-        {sensorId ? `Sensor #${sensorId} Readings` : nodeId ? `Node #${nodeId} Readings` : 'All Readings'}
+        {sensorId ? `Sensor #${sensorId} Readings` : 'All Readings'}
       </Typography>
 
       <Box sx={{ mb: 4, p: 2, border: '1px solid #eee', borderRadius: 1 }}>
@@ -144,7 +145,6 @@ const ReadingsList: React.FC<{ sensorId?: number; nodeId?: number }> = ({ sensor
               <TableRow>
                 <TableCell>ID</TableCell>
                 <TableCell>Sensor ID</TableCell>
-                <TableCell>Node ID</TableCell>
                 <TableCell>Value</TableCell>
                 <TableCell>Timestamp</TableCell>
               </TableRow>
@@ -154,8 +154,7 @@ const ReadingsList: React.FC<{ sensorId?: number; nodeId?: number }> = ({ sensor
                 <TableRow key={reading.readingId}>
                   <TableCell>{reading.readingId}</TableCell>
                   <TableCell>{reading.sensorId}</TableCell>
-                  <TableCell>{reading.nodeId}</TableCell>
-                  <TableCell>{reading.value}</TableCell>
+                  <TableCell>{reading.value} {reading.sensorType?.unit || ''}</TableCell>
                   <TableCell>{formatDate(new Date(reading.timestamp))}</TableCell>
                 </TableRow>
               ))}
