@@ -126,7 +126,7 @@ export default function Dashboard() {
           <Fade in={!!expanded}>
               <Box
                 sx={{
-                    position: 'fixed',
+                    position: 'absolute',
                     top: '50%',
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
@@ -154,7 +154,7 @@ export default function Dashboard() {
 
     return (
       <PageWrapper>
-          <Box sx={{ p: 3 }}>
+          <Box sx={{ p: 3, pr: 20 }}>
               <PageHeader title="WSN Monitoring Dashboard" breadcrumbs={[{ label: 'Dashboard', href: '/' }]} />
 
               {isError && (
