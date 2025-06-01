@@ -1,6 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/store/authStore';
-import { useNotification } from '@/contexts/NotificationContext';
+import { notify } from '@/store/notificationService';
 
 interface ApiErrorResponse {
   message?: string;
@@ -19,24 +19,23 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
 });
 
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiErrorResponse>) => {
     const originalRequest = error.config as CustomAxiosRequestConfig;
-    const { showNotification } = useNotification();
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -60,7 +59,7 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshError) {
         console.error('Refresh token failed', refreshError);
-        showNotification('Session expired. Please login again.', 'error');
+        notify('Session expired. Please login again.', 'error');
         await useAuthStore.getState().logout();
         return Promise.reject(error);
       }
@@ -68,7 +67,8 @@ apiClient.interceptors.response.use(
 
     let errorMessage = 'An unexpected error occurred';
     if (error.response) {
-      errorMessage = error.response.data?.message ||
+      errorMessage =
+        error.response.data?.message ||
         error.response.data?.error ||
         error.message;
 
@@ -83,7 +83,7 @@ apiClient.interceptors.response.use(
       errorMessage = 'Network error. Please check your connection.';
     }
 
-    showNotification(errorMessage, 'error');
+    notify(errorMessage, 'error');
     return Promise.reject(new Error(errorMessage));
   }
 );

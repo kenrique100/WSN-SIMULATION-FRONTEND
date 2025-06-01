@@ -1,6 +1,8 @@
-import { createContext, useContext, ReactNode, useState } from 'react';
+// src/contexts/NotificationContext.tsx
+import { useEffect, useState, createContext, useContext, ReactNode } from 'react';
 import { AlertColor, Snackbar } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
+import { registerNotificationFn } from '@/store/notificationService';
 
 interface Notification {
     message: string;
@@ -23,6 +25,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         setNotification({ message, severity });
         setOpen(true);
     };
+
+    useEffect(() => {
+        registerNotificationFn(showNotification); // 👈 Register here
+    }, []);
 
     const handleClose = () => {
         setOpen(false);
