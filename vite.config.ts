@@ -15,7 +15,7 @@ export default defineConfig({
                 secure: false,
             },
             '/ws': {
-                target: 'https://wsn-monitoring-1-0-0-1.onrender.com',
+                target: 'http://localhost:8080',
                 ws: true,
                 changeOrigin: true,
             },
