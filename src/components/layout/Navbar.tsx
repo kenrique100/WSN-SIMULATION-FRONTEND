@@ -27,6 +27,7 @@ import SidebarToggleButton from '@/components/layout/SidebarToggleButton';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { formatDistanceToNow } from 'date-fns';
+import { Notification } from '@/types/notification';
 
 const StyledBadge = styled(Badge)(({ theme }) => ({
   '& .MuiBadge-badge': {
@@ -46,10 +47,9 @@ export default function Navbar() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Fetch notifications on mount and periodically
   useEffect(() => {
     if (isAuthenticated) {
-      const fetch = async () => {
+      const loadNotifications = async () => {
         try {
           await fetchNotifications();
         } catch (error) {
@@ -57,8 +57,8 @@ export default function Navbar() {
         }
       };
 
-      fetch();
-      const interval = setInterval(fetch, 30000); // Poll every 30 seconds
+      loadNotifications();
+      const interval = setInterval(loadNotifications, 30000);
       return () => clearInterval(interval);
     }
   }, [isAuthenticated, fetchNotifications]);
@@ -93,9 +93,19 @@ export default function Navbar() {
   const handleNotificationClick = async (id: string) => {
     try {
       await markAsRead(id);
-      // You could add navigation logic here based on notification type
     } catch (error) {
       console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const unreadNotifications = notifications.filter(n => !n.read);
+      for (const notification of unreadNotifications) {
+        await markAsRead(notification.id);
+      }
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
     }
   };
 
@@ -158,14 +168,8 @@ export default function Navbar() {
               open={Boolean(notifAnchorEl)}
               anchorEl={notifAnchorEl}
               onClose={handleNotifClose}
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'right',
-              }}
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
               slotProps={{
                 paper: {
                   sx: {
@@ -182,19 +186,15 @@ export default function Navbar() {
                 <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography variant="h6">Notifications</Typography>
                   {unreadCount > 0 && (
-                    <Button
-                      size="small"
-                      onClick={() => markAsRead('all')}
-                      disabled={unreadCount === 0}
-                    >
+                    <Button size="small" onClick={handleMarkAllAsRead}>
                       Mark all as read
                     </Button>
                   )}
                 </Box>
                 <Divider />
                 <List sx={{ p: 0 }}>
-                  {notifications.length > 0 ? (
-                    notifications.map((notification) => (
+                  {Array.isArray(notifications) && notifications.length > 0 ? (
+                    (notifications as Notification[]).map((notification, index) => (
                       <ListItem
                         key={notification.id}
                         onClick={() => handleNotificationClick(notification.id)}
@@ -247,13 +247,7 @@ export default function Navbar() {
               sx={{ p: 0, ml: 1 }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography
-                  variant="body1"
-                  sx={{
-                    display: { xs: 'none', sm: 'block' },
-                    fontWeight: 500,
-                  }}
-                >
+                <Typography variant="body1" sx={{ display: { xs: 'none', sm: 'block' }, fontWeight: 500 }}>
                   {user.username}
                 </Typography>
                 <Avatar
@@ -273,15 +267,9 @@ export default function Navbar() {
             <Menu
               id="menu-appbar"
               anchorEl={anchorEl}
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'right',
-              }}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
               keepMounted
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
               open={Boolean(anchorEl)}
               onClose={handleClose}
               slotProps={{
