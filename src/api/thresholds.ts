@@ -11,12 +11,17 @@ export const createThreshold = async (
 ): Promise<ThresholdResponse> => {
     try {
         const response = await apiClient.post('/thresholds', data, {
-            timeout: 10000
+            timeout: 10000,
+            headers: {
+                'Content-Type': 'application/json',
+            },
         });
         return response.data;
-    } catch (error) {
-        console.error('Error creating threshold:', error);
-        throw error;
+    } catch (error: any) {
+        console.error('Error creating threshold:', error.response?.data);
+        throw new Error(
+          error.response?.data?.message || 'Failed to create threshold'
+        );
     }
 };
 

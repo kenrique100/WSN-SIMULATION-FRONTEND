@@ -13,15 +13,20 @@ export default function ThresholdCreate() {
     try {
       await createThreshold({
         sensorTypeId: data.sensorTypeId,
-        infoLevel: data.infoLevel || 0,
-        warningLevel: data.warningLevel || 0,
-        dangerLevel: data.dangerLevel || 0,
+        infoLevel: data.infoLevel,
+        warningLevel: data.warningLevel,
+        dangerLevel: data.dangerLevel,
         updatedBy: data.updatedBy,
       });
+
       showNotification('Threshold created successfully', 'success');
       navigate('/thresholds');
-    } catch {
-      showNotification('Failed to create threshold', 'error');
+    } catch (error: any) {
+      console.error('Error creating threshold:', error);
+      showNotification(
+        error.response?.data?.message || 'Failed to create threshold',
+        'error'
+      );
     }
   };
 

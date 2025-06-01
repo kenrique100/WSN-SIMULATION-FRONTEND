@@ -13,6 +13,8 @@ import React from 'react';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 import Login from '@/pages/Login';
 import { Role } from '@/types';
+import ThresholdCreate from '@/components/thresholds/ThresholdCreate';
+import ThresholdEdit from '@/components/thresholds/ThresholdEdit';
 
 export default function AppRoutes() {
   return (
@@ -45,11 +47,24 @@ export default function AppRoutes() {
             <Settings />
           </ProtectedRoute>
         } />
+
+        {/* Updated Thresholds Routes */}
         <Route path="/thresholds" element={
           <ProtectedRoute roles={[Role.ADMIN]}>
             <Thresholds />
           </ProtectedRoute>
         } />
+        <Route path="/thresholds/new" element={
+          <ProtectedRoute roles={[Role.ADMIN]}>
+            <ThresholdCreate />
+          </ProtectedRoute>
+        } />
+        <Route path="/thresholds/:thresholdId/edit" element={
+          <ProtectedRoute roles={[Role.ADMIN]}>
+            <ThresholdEdit />
+          </ProtectedRoute>
+        } />
+
         <Route path="/topology" element={
           <ProtectedRoute roles={[Role.ADMIN]}>
             <Topology />

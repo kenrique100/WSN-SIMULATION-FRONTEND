@@ -4,40 +4,40 @@ import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useEffect, useState } from 'react';
+import { useAuthStore } from '@/store/authStore';
 
 export interface ThresholdFormValues {
   sensorTypeId: number;
-  infoLevel?: number;
-  warningLevel?: number;
-  dangerLevel?: number;
+  infoLevel: number;
+  warningLevel: number;
+  dangerLevel: number;
   updatedBy: number;
 }
 
 const schema: yup.ObjectSchema<ThresholdFormValues> = yup.object({
-  sensorTypeId: yup.number().required('Sensor type is required'),
+  sensorTypeId: yup.number().required('Sensor type is required').positive('Invalid sensor type'),
   infoLevel: yup.number()
     .required('Info level is required')
-    .test('is-less-than-warning', 'Info must be < warning', function (value) {
-      const warning = this.parent.warningLevel;
-      return !warning || (value !== undefined && value < warning);
+    .typeError('Must be a number')
+    .test('is-less-than-warning', 'Info must be less than warning', function (value) {
+      return !this.parent.warningLevel || (value < this.parent.warningLevel);
     }),
   warningLevel: yup.number()
     .required('Warning level is required')
-    .test('is-less-than-danger', 'Warning must be < danger', function (value) {
-      const danger = this.parent.dangerLevel;
-      return !danger || (value !== undefined && value < danger);
+    .typeError('Must be a number')
+    .test('is-less-than-danger', 'Warning must be less than danger', function (value) {
+      return !this.parent.dangerLevel || (value < this.parent.dangerLevel);
     })
-    .test('is-greater-than-info', 'Warning must be > info', function (value) {
-      const info = this.parent.infoLevel;
-      return !info || (value !== undefined && value > info);
+    .test('is-greater-than-info', 'Warning must be greater than info', function (value) {
+      return !this.parent.infoLevel || (value > this.parent.infoLevel);
     }),
   dangerLevel: yup.number()
     .required('Danger level is required')
-    .test('is-greater-than-warning', 'Danger must be > warning', function (value) {
-      const warning = this.parent.warningLevel;
-      return !warning || (value !== undefined && value > warning);
+    .typeError('Must be a number')
+    .test('is-greater-than-warning', 'Danger must be greater than warning', function (value) {
+      return !this.parent.warningLevel || (value > this.parent.warningLevel);
     }),
-  updatedBy: yup.number().required('User ID is required'),
+  updatedBy: yup.number().required(),
 }).required();
 
 interface ThresholdFormProps {
@@ -53,44 +53,57 @@ export default function ThresholdForm({
                                         initialData,
                                         isEdit = false,
                                       }: ThresholdFormProps) {
+  const user = useAuthStore(state => state.user);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     control,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
     watch,
     setValue,
   } = useForm<ThresholdFormValues>({
     defaultValues: {
-      sensorTypeId: undefined,
-      infoLevel: undefined,
-      warningLevel: undefined,
-      dangerLevel: undefined,
-      updatedBy: 1,
-      ...initialData,
+      sensorTypeId: initialData?.sensorTypeId || undefined,
+      infoLevel: initialData?.infoLevel || 0,
+      warningLevel: initialData?.warningLevel || 0,
+      dangerLevel: initialData?.dangerLevel || 0,
+      updatedBy: user?.userId || 1, // Default to current user or fallback
     },
     resolver: yupResolver(schema),
+    mode: 'onChange',
   });
 
   const values = watch();
 
+  // Auto-adjust values to maintain proper hierarchy
   useEffect(() => {
-    if (
-      values.warningLevel !== undefined &&
-      values.dangerLevel !== undefined &&
-      values.warningLevel >= values.dangerLevel
-    ) {
-      const newWarning = values.dangerLevel - 1;
-      if (values.warningLevel !== newWarning) {
-        setValue('warningLevel', newWarning, { shouldValidate: true });
-      }
+    if (values.infoLevel !== undefined && values.warningLevel !== undefined &&
+      values.infoLevel >= values.warningLevel) {
+      setValue('warningLevel', values.infoLevel + 1, { shouldValidate: true });
     }
-  }, [values.warningLevel, values.dangerLevel, setValue]);
+
+    if (values.warningLevel !== undefined && values.dangerLevel !== undefined &&
+      values.warningLevel >= values.dangerLevel) {
+      setValue('dangerLevel', values.warningLevel + 1, { shouldValidate: true });
+    }
+  }, [values.infoLevel, values.warningLevel, values.dangerLevel, setValue]);
+
+  // Set the current user as the updater
+  useEffect(() => {
+    if (user?.userId) {
+      setValue('updatedBy', user.userId);
+    }
+  }, [user, setValue]);
 
   const handleFormSubmit: SubmitHandler<ThresholdFormValues> = async (data) => {
     setIsSubmitting(true);
     try {
-      await onSubmit(data);
+      await onSubmit({
+        ...data,
+        infoLevel: Number(data.infoLevel),
+        warningLevel: Number(data.warningLevel),
+        dangerLevel: Number(data.dangerLevel),
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -109,6 +122,7 @@ export default function ThresholdForm({
               label="Sensor Type ID"
               type="number"
               fullWidth
+              required
               disabled={isEdit || isSubmitting}
               error={!!errors.sensorTypeId}
               helperText={errors.sensorTypeId?.message}
@@ -117,7 +131,7 @@ export default function ThresholdForm({
           )}
         />
 
-        {['infoLevel', 'warningLevel', 'dangerLevel', 'updatedBy'].map((fieldKey) => (
+        {['infoLevel', 'warningLevel', 'dangerLevel'].map((fieldKey) => (
           <Controller
             key={fieldKey}
             name={fieldKey as keyof ThresholdFormValues}
@@ -130,21 +144,37 @@ export default function ThresholdForm({
                   .replace(/^./, (str) => str.toUpperCase())}
                 type="number"
                 fullWidth
+                required
                 disabled={isSubmitting}
                 error={!!errors[fieldKey as keyof ThresholdFormValues]}
                 helperText={errors[fieldKey as keyof ThresholdFormValues]?.message}
-                onChange={(e) =>
-                  field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
-                }
+                inputProps={{ step: "0.01" }}
+                onChange={(e) => field.onChange(Number(e.target.value))}
               />
             )}
           />
         ))}
 
+        <Controller
+          name="updatedBy"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              {...field}
+              label="Updated By"
+              type="number"
+              fullWidth
+              disabled
+              error={!!errors.updatedBy}
+              helperText={errors.updatedBy?.message}
+            />
+          )}
+        />
+
         <FormButtons
           onCancel={onCancel}
           isEdit={isEdit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || !isValid}
         />
       </Stack>
     </Box>
