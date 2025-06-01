@@ -1,61 +1,61 @@
+// notificationStore.ts
 import { create } from 'zustand';
 import apiClient from '@/api/apiClient';
-import { Notification } from '@/types/notification';
+
+interface Notification {
+  id: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+}
 
 interface NotificationStore {
   notifications: Notification[];
   unreadCount: number;
+  isLoading: boolean;
+  error: string | null;
   fetchNotifications: () => Promise<void>;
-  markAsRead: (id: string | 'all') => Promise<void>;
-  addNotification: (notification: Notification) => void;
+  markAsRead: (id: string) => Promise<void>;
 }
 
 export const useNotificationStore = create<NotificationStore>((set, get) => ({
   notifications: [],
   unreadCount: 0,
+  isLoading: false,
+  error: null,
 
   fetchNotifications: async () => {
+    set({ isLoading: true, error: null });
     try {
-      const response = await apiClient.get('/notifications');
-      const notifications = response.data as Notification[];
-      const unreadCount = notifications.filter((n) => !n.read).length;
-      set({ notifications, unreadCount });
+      const response = await apiClient.get('/notifications', {
+        skipErrorNotification: true // Skip showing error notifications for this request
+      });
+      const notifications = response.data;
+      set({
+        notifications,
+        unreadCount: notifications.filter((n: Notification) => !n.read).length,
+        isLoading: false
+      });
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
+      set({
+        error: 'Failed to load notifications',
+        isLoading: false
+      });
     }
   },
 
-  markAsRead: async (id: string | 'all') => {
+  markAsRead: async (id: string) => {
     try {
-      if (id === 'all') {
-        await apiClient.patch('/notifications/mark-all-read');
-        set({
-          notifications: get().notifications.map(n => ({ ...n, read: true })),
-          unreadCount: 0,
-        });
-      } else {
-        await apiClient.patch(`/notifications/${id}/read`);
-        set((state) => {
-          const updated = state.notifications.map(n =>
-            n.id === id ? { ...n, read: true } : n
-          );
-          const unreadCount = updated.filter(n => !n.read).length;
-          return { notifications: updated, unreadCount };
-        });
-      }
+      await apiClient.patch(`/notifications/${id}/read`);
+      set(state => ({
+        notifications: state.notifications.map(n =>
+          n.id === id ? { ...n, read: true } : n
+        ),
+        unreadCount: state.unreadCount - 1
+      }));
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
     }
-  },
-
-  addNotification: (notification: Notification) => {
-    set((state) => {
-      const exists = state.notifications.some(n => n.id === notification.id);
-      if (exists) return state;
-
-      const notifications = [notification, ...state.notifications];
-      const unreadCount = notification.read ? state.unreadCount : state.unreadCount + 1;
-      return { notifications, unreadCount };
-    });
-  },
+  }
 }));

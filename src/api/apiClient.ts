@@ -6,6 +6,7 @@ import { notify } from '@/store/notificationService';
 declare module 'axios' {
   interface AxiosRequestConfig {
     skipAuthRefresh?: boolean;
+    skipErrorNotification?: boolean;
   }
 }
 
@@ -48,6 +49,7 @@ apiClient.interceptors.response.use(
   async (error: AxiosError<ApiErrorResponse>) => {
     const originalRequest = error.config as CustomAxiosRequestConfig;
 
+    // Skip handling for auth endpoints or already retried requests
     if (error.response?.status === 401 &&
       !originalRequest._retry &&
       !originalRequest.url?.includes('/auth/')) {
@@ -56,15 +58,10 @@ apiClient.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refreshToken');
         if (refreshToken) {
-          // Ensure the refresh token is properly formatted for the backend
-          const formattedRefreshToken = refreshToken.startsWith('Bearer ')
-            ? refreshToken
-            : `Bearer ${refreshToken}`;
-
           const response = await axios.post(
             `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'}/auth/refresh`,
-            { refreshToken: formattedRefreshToken },
-            { skipAuthRefresh: true }
+            { refreshToken: refreshToken.startsWith('Bearer ') ? refreshToken : `Bearer ${refreshToken}` },
+            { skipAuthRefresh: true, skipErrorNotification: true }
           );
 
           const { accessToken, refreshToken: newRefreshToken } = response.data;
@@ -78,11 +75,17 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshError) {
         console.error('Refresh token failed', refreshError);
-        notify('Session expired. Please login again.', 'error');
+        if (!originalRequest.skipErrorNotification) {
+          notify('Session expired. Please login again.', 'error');
+        }
         await useAuthStore.getState().logout();
-        window.location.href = '/login';
         return Promise.reject(error);
       }
+    }
+
+    // Skip notification for requests that explicitly request it
+    if (originalRequest.skipErrorNotification) {
+      return Promise.reject(error);
     }
 
     const errorMessage = getErrorMessage(error);
@@ -92,7 +95,7 @@ apiClient.interceptors.response.use(
       notify(errorMessage, 'error');
     }
 
-    return Promise.reject(new Error(errorMessage));
+    return Promise.reject(error);
   }
 );
 
