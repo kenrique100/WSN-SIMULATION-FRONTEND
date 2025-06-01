@@ -1,6 +1,13 @@
+// apiClient.ts
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/store/authStore';
 import { notify } from '@/store/notificationService';
+
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipAuthRefresh?: boolean;
+  }
+}
 
 interface ApiErrorResponse {
   message?: string;
@@ -22,7 +29,11 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    if (config.skipAuthRefresh) {
+      return config;
+    }
+
     const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -37,15 +48,23 @@ apiClient.interceptors.response.use(
   async (error: AxiosError<ApiErrorResponse>) => {
     const originalRequest = error.config as CustomAxiosRequestConfig;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/')) {
       originalRequest._retry = true;
 
       try {
         const refreshToken = localStorage.getItem('refreshToken');
         if (refreshToken) {
+          // Ensure the refresh token is properly formatted for the backend
+          const formattedRefreshToken = refreshToken.startsWith('Bearer ')
+            ? refreshToken
+            : `Bearer ${refreshToken}`;
+
           const response = await axios.post(
             `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'}/auth/refresh`,
-            { refreshToken }
+            { refreshToken: formattedRefreshToken },
+            { skipAuthRefresh: true }
           );
 
           const { accessToken, refreshToken: newRefreshToken } = response.data;
@@ -61,31 +80,39 @@ apiClient.interceptors.response.use(
         console.error('Refresh token failed', refreshError);
         notify('Session expired. Please login again.', 'error');
         await useAuthStore.getState().logout();
+        window.location.href = '/login';
         return Promise.reject(error);
       }
     }
 
-    let errorMessage = 'An unexpected error occurred';
-    if (error.response) {
-      errorMessage =
-        error.response.data?.message ||
-        error.response.data?.error ||
-        error.message;
-
-      if (error.response.status === 403) {
-        errorMessage = 'You do not have permission to perform this action';
-      } else if (error.response.status >= 500) {
-        errorMessage = 'Server error. Please try again later.';
-      }
-    } else if (error.code === 'ECONNABORTED') {
-      errorMessage = 'Request timeout. Please try again.';
-    } else if (error.code === 'ERR_NETWORK') {
-      errorMessage = 'Network error. Please check your connection.';
+    const errorMessage = getErrorMessage(error);
+    if (!originalRequest.skipAuthRefresh && error.response?.status === 401) {
+      notify('Session expired. Please login again.', 'error');
+    } else {
+      notify(errorMessage, 'error');
     }
 
-    notify(errorMessage, 'error');
     return Promise.reject(new Error(errorMessage));
   }
 );
+
+function getErrorMessage(error: AxiosError<ApiErrorResponse>): string {
+  if (error.response) {
+    if (error.response.status === 403) {
+      return 'You do not have permission to perform this action';
+    } else if (error.response.status >= 500) {
+      return 'Server error. Please try again later.';
+    }
+    return error.response.data?.message ||
+      error.response.data?.error ||
+      error.message ||
+      'An unexpected error occurred';
+  } else if (error.code === 'ECONNABORTED') {
+    return 'Request timeout. Please try again.';
+  } else if (error.code === 'ERR_NETWORK') {
+    return 'Network error. Please check your connection.';
+  }
+  return 'An unexpected error occurred';
+}
 
 export default apiClient;

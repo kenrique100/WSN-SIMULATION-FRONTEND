@@ -1,3 +1,4 @@
+// WebSocketProvider.tsx
 import { createContext, useContext, ReactNode, useEffect, useState, useCallback } from 'react';
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -26,17 +27,28 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     const [readings, setReadings] = useState<any[]>([]);
     const [stompClient, setStompClient] = useState<Client | null>(null);
     const { showNotification } = useNotification();
-    const token = useAuthStore(state => state.token);
+    const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+    const token = isAuthenticated ? localStorage.getItem('accessToken') : null;
 
     const connectWebSocket = useCallback(() => {
+        if (!token) return null;
+
+        // Ensure the URL is properly formatted for SockJS
+        const wsUrl = (import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws')
+          .replace(/^ws:/, 'http:')
+          .replace(/^wss:/, 'https:');
+
         const client = new Client({
-            brokerURL: import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws',
+            brokerURL: wsUrl,
             reconnectDelay: 5000,
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,
             debug: (str) => console.log('[STOMP]', str),
-            connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
-            webSocketFactory: () => new SockJS(import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws'),
+            connectHeaders: {
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/json',
+            },
+            webSocketFactory: () => new SockJS(wsUrl),
 
             onConnect: () => {
                 console.log('WebSocket connected');
@@ -44,7 +56,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
                 setConnectionStatus('connected');
 
                 client.subscribe('/topic/alerts', (message: IMessage) => {
-                    const data = JSON.parse(message.body);
+                    const data = JSON.parse(message.body) as Alert;
                     setAlerts(prev => [data, ...prev].slice(0, 50));
                     showNotification(`New alert: ${data.message}`, 'warning');
                 });
@@ -58,11 +70,13 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
             onStompError: (frame) => {
                 console.error('STOMP error:', frame.headers.message);
                 setConnectionStatus('disconnected');
+                setIsConnected(false);
             },
 
             onWebSocketError: (error) => {
                 console.error('WebSocket error:', error);
                 setConnectionStatus('disconnected');
+                setIsConnected(false);
             },
 
             onDisconnect: () => {
@@ -82,7 +96,10 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
             stompClient.publish({
                 destination,
                 body: JSON.stringify(message),
-                headers: token ? { Authorization: `Bearer ${token}` } : {}
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             });
         } else {
             console.error('WebSocket is not connected');
@@ -90,14 +107,19 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     }, [stompClient, token]);
 
     useEffect(() => {
+        let client: Client | null = null;
+
         if (token) {
-            const client = connectWebSocket();
-            return () => {
-                if (client && client.connected) {
-                    client.deactivate();
-                }
-            };
+            client = connectWebSocket();
         }
+
+        return () => {
+            if (client && client.connected) {
+                client.deactivate().catch(err => {
+                    console.error('Error deactivating WebSocket:', err);
+                });
+            }
+        };
     }, [connectWebSocket, token]);
 
     const value = {

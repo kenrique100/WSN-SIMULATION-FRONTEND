@@ -1,4 +1,3 @@
-// src/services/notificationService.ts
 
 type NotificationFn = (message: string, severity: 'error' | 'success' | 'info' | 'warning') => void;
 

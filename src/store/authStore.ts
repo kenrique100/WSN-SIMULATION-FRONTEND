@@ -1,16 +1,16 @@
+// authStore.ts
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import {
   login as apiLogin,
   logout as apiLogout,
   getCurrentUser,
-  refreshToken
+  refreshToken as apiRefreshToken
 } from '@/api/auth';
 import type { UserResponse, Role } from '@/types';
 
 interface AuthState {
   user: UserResponse | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -21,27 +21,37 @@ interface AuthState {
   refreshToken: () => Promise<boolean>;
   hasRole: (role: Role) => boolean;
   setUser: (user: UserResponse | null) => void;
+  clearAuth: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   immer((set, get) => ({
     user: null,
-    token: localStorage.getItem('accessToken'),
-    isAuthenticated: false,
+    isAuthenticated: !!localStorage.getItem('accessToken'),
     isLoading: false,
     error: null,
     initialized: false,
+
     setUser: (user) => set({ user }),
+
+    clearAuth: () => {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      set({
+        user: null,
+        isAuthenticated: false,
+        error: null
+      });
+    },
 
     login: async (username, password) => {
       set({ isLoading: true, error: null });
       try {
-        const { accessToken, refreshToken: newRefreshToken, user } = await apiLogin({ username, password });
+        const { accessToken, refreshToken, user } = await apiLogin({ username, password });
         localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
+        localStorage.setItem('refreshToken', refreshToken);
         set({
           user,
-          token: accessToken,
           isAuthenticated: true,
           initialized: true,
         });
@@ -56,25 +66,21 @@ export const useAuthStore = create<AuthState>()(
     },
 
     logout: async () => {
+      set({ isLoading: true });
       try {
         await apiLogout();
+      } catch (err) {
+        console.error('Logout error:', err);
       } finally {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-          initialized: true,
-          error: null,
-          isLoading: false
-        });
+        get().clearAuth();
+        set({ initialized: true, isLoading: false });
+        window.location.reload();
       }
     },
 
     initializeAuth: async () => {
-      const accessToken = localStorage.getItem('accessToken');
-      if (!accessToken) {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
         set({ initialized: true });
         return;
       }
@@ -84,7 +90,6 @@ export const useAuthStore = create<AuthState>()(
         const user = await getCurrentUser();
         set({
           user,
-          token: accessToken,
           isAuthenticated: true,
           initialized: true,
         });
@@ -92,25 +97,23 @@ export const useAuthStore = create<AuthState>()(
         if (await get().refreshToken()) {
           return;
         }
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-          initialized: true,
-        });
+        get().clearAuth();
       } finally {
         set({ isLoading: false });
       }
     },
 
     refreshToken: async () => {
-      const refreshTokenValue = localStorage.getItem('refreshToken');
-      if (!refreshTokenValue) return false;
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) return false;
 
       try {
-        const { accessToken, refreshToken: newRefreshToken } = await refreshToken(refreshTokenValue);
+        // Ensure the refresh token is properly formatted for the backend
+        const formattedRefreshToken = refreshToken.startsWith('Bearer ')
+          ? refreshToken
+          : `Bearer ${refreshToken}`;
+
+        const { accessToken, refreshToken: newRefreshToken } = await apiRefreshToken(formattedRefreshToken);
         localStorage.setItem('accessToken', accessToken);
         if (newRefreshToken) {
           localStorage.setItem('refreshToken', newRefreshToken);
@@ -119,22 +122,13 @@ export const useAuthStore = create<AuthState>()(
         const user = await getCurrentUser();
         set({
           user,
-          token: accessToken,
           isAuthenticated: true,
-          initialized: true,
           error: null
         });
         return true;
       } catch (err) {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-          initialized: true,
-          error: 'Session expired. Please login again.'
-        });
+        get().clearAuth();
+        set({ error: 'Session expired. Please login again.' });
         return false;
       }
     },
