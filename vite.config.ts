@@ -10,7 +10,7 @@ export default defineConfig({
         port: 3000,
         proxy: {
             '/api': {
-                target: 'https://wsn-monitoring-1-0-0-1.onrender.com',
+                target: 'http://localhost:8080',
                 changeOrigin: true,
                 secure: false,
             },
